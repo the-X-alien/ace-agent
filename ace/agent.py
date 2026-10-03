@@ -287,7 +287,22 @@ def build_prompt(events, keep_full=6, cap=1500, max_chars=None):
     return "\n\n".join(parts)
 
 
-def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeout=300):
+def with_skills(task, root, say=None):
+    """Pick working-rule skills that match the task and put them in front of it (the picks are shown, with the words that caused them)."""
+    from . import skills as sk
+    try:
+        picks = sk.select(task, sk.load_skills([os.path.join(root, ".ace", "skills")]))
+    except (OSError, ValueError):
+        picks = []
+    if not picks:
+        return task
+    if say:
+        say("skills: " + ", ".join("%s (%s)" % (p.skill.name, ", ".join(p.matched[:3])) for p in picks))
+    text = sk.compose(task, picks)
+    return text + "\n\n(You are using tools: save files with write_file or an ace-write block instead of returning a code block, and keep any CSS inside the page.)"
+
+
+def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeout=300, skills=False):
     """Run the loop. Returns a dict: answer, steps, session, stopped ('done'|'max_steps'|'error'), calls."""
     say = say or (lambda s: None)
     sid = session or time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:4]
@@ -301,7 +316,7 @@ def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeo
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(ev) + "\n")
 
-    add("user", task)
+    add("user", with_skills(task, root, say) if skills else task)
     steps, calls, answer, stopped = 0, 0, "", "max_steps"
     recent = []
     while steps < max_steps:
