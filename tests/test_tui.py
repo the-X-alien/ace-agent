@@ -88,6 +88,16 @@ class TuiTest(unittest.TestCase):
             self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()))
             self.assertEqual(len(a.render()), max(h, 9))
 
+    def test_tab_toggles_plan_mode(self):
+        a = self.app((100, 30))
+        a.key("/")
+        a.key("backspace")
+        a.key("tab")
+        self.assertTrue(a.chat.plan)
+        self.assertIn("Plan \u00b7", self.text(a))
+        a.key("tab")
+        self.assertFalse(a.chat.plan)
+
     def test_markdown_and_diff_render(self):
         a = self.app((100, 30))
         a.add("hi", "user")
