@@ -100,6 +100,10 @@ def build(prov, prompt, say=print):
         return ls[:4] if len(ls) >= 4 else None
     ct = _ask(prov, topic + "Business name: %s\nReply with exactly four lines. Line 1: a one or two word title for the offerings section (like Menu or Services). Line 2: a street address. Line 3: opening hours. Line 4: a phone number. No other text." % name, ok_ct, say=say)
     sect, addr, hours, phone = ct
+    sect = re.split(r"[:/\-\u2013(]", sect)[0].strip() or "Menu"
+    sect = " ".join(sect.split()[:3])
+    if not re.search(r"\d{3}\D*\d{3,4}", phone):
+        phone = next((l for l in ct[1:] if re.fullmatch(r"[\d\s().+-]{7,}", l)), "")
 
     e = html.escape
     cards = "".join('<div class="card"><h3>%s</h3><div class="price">%s</div><p>%s</p></div>' % (e(n), e(p), e(d)) for n, p, d in items)
@@ -112,10 +116,10 @@ def build(prov, prompt, say=print):
 <section id="about"><h2>About us</h2><p>%(about)s</p></section>
 <section id="offer"><h2>%(sect)s</h2><div class="grid">%(cards)s</div></section>
 <section id="reviews"><h2>What people say</h2><p class="who">Sample reviews written by an AI as placeholders, not real customers.</p><div class="grid">%(rev)s</div></section>
-<section id="contact"><h2>Visit us</h2><p>%(addr)s<br>%(hours)s<br>%(phone)s</p></section>
+<section id="contact"><h2>Visit us</h2><p>%(addr)s<br>%(hours)s%(phone)s</p></section>
 <footer>&copy; %(name)s. Page text written by a language model, assembled by Ace.</footer>
 </body></html>
-""" % dict(name=e(name), style=STYLE, sect=e(sect), tag=e(tag), about=e(about), cards=cards, rev=rev, addr=e(addr), hours=e(hours), phone=e(phone))
+""" % dict(name=e(name), style=STYLE, sect=e(sect), tag=e(tag), about=e(about), cards=cards, rev=rev, addr=e(addr), hours=e(hours), phone=("<br>" + e(phone)) if phone else "")
     hard = [m for lvl, m in gate.check_html(page) if lvl == "hard"]
     return page, hard
 
