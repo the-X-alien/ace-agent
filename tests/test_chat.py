@@ -69,6 +69,17 @@ class ChatTests(unittest.TestCase):
         c.loop()
         self.assertIn("MOCK", err.getvalue())
 
+    def test_site_and_ping_commands(self):
+        out = io.StringIO()
+        c = chat.Chat(self.d, provider_name="mock", out=out, err=io.StringIO())
+        c.command("/site a cafe")
+        c.command("/ping")
+        self.assertIn("mock provider cannot write a site", out.getvalue())
+        self.assertIn("MOCK", out.getvalue())
+        self.assertFalse(os.path.exists(os.path.join(self.d, "index.html")))
+        c.command("/site")
+        self.assertIn("Usage: /site", out.getvalue())
+
     def test_model_command_sets_model(self):
         out = io.StringIO()
         c = chat.Chat(self.d, out=out, err=io.StringIO())
