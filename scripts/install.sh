@@ -1,9 +1,9 @@
 #!/bin/sh
 # Ace installer for macOS and Linux. Installs a pinned version, is safe to run twice, never asks for keys or sudo.
-# One line:  curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.3/scripts/install.sh | sh
+# One line:  curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.sh | sh
 # Remove:    ACE_UNINSTALL=1 sh install.sh
 set -eu
-REF="${ACE_REF:-v0.1.3}"
+REF="${ACE_REF:-v0.1.4}"
 SOURCE="${ACE_SOURCE:-https://github.com/the-X-alien/ace-agent/archive/refs/tags/${REF}.zip}"
 HOME_DIR="${ACE_HOME:-$HOME/.ace-agent}"
 BIN="${ACE_BIN:-$HOME/.local/bin}"
