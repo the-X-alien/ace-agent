@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ace board</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--felt:#0e3b2c;--felt2:#0a2b20;--ivory:#f6f0e1;--ink:#14110f;--red:#c8372d;--gold:#d9a441;--mute:#6b6a60}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 20% -10%,#17513d 0,var(--felt) 55%,var(--felt2) 100%);color:var(--ivory);font:15px/1.45 Georgia,"Times New Roman",serif}
+header{display:flex;align-items:center;gap:16px;padding:18px 28px;border-bottom:1px solid #ffffff22;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo h1{margin:0;font-size:30px;letter-spacing:.04em;font-weight:700}
+.logo small{display:block;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#cfe3d8;font-family:system-ui,sans-serif}
+.who{margin-left:auto;font:13px system-ui,sans-serif;display:flex;gap:8px;align-items:center}
+input,select,textarea,button{font:14px system-ui,sans-serif}
+input,select,textarea{background:#fffaf0;color:var(--ink);border:1px solid #cdbf9c;border-radius:8px;padding:8px 10px}
+button{background:var(--gold);color:var(--ink);border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--ivory);border:1px solid #ffffff44}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #fff;outline-offset:2px}
+main{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);gap:20px;padding:20px 28px}
+main>*{min-width:0}
+@media(max-width:960px){main{grid-template-columns:1fr}}
+.cols{display:grid;grid-template-columns:repeat(5,minmax(170px,1fr));gap:12px;overflow-x:auto}
+.col h2{font:600 12px system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;margin:0 0 8px;color:#cfe3d8}
+.card{background:var(--ivory);color:var(--ink);border-radius:12px;padding:12px 12px 10px;margin-bottom:10px;position:relative;box-shadow:0 6px 18px #0006}
+.card:before{content:"\2660";position:absolute;right:10px;top:6px;color:#14110f22;font-size:20px}
+.card h3{margin:0 0 6px;font-size:16px;padding-right:22px}
+.chip{display:inline-block;font:12px system-ui,sans-serif;padding:2px 8px;border-radius:99px;background:#14110f12;margin-right:4px}
+.chip.agent{background:#c8372d1f;color:#8d1f17}
+.bar{height:6px;background:#14110f1a;border-radius:6px;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--felt);border-radius:6px}
+.notes{font:12px system-ui,sans-serif;color:var(--mute);max-height:84px;overflow:auto;margin-top:6px}
+.badge{display:inline-block;margin-top:4px;white-space:nowrap;font:600 11px system-ui,sans-serif;color:#7a4a00;background:#f2d58a;border-radius:6px;padding:2px 6px}
+.badge.ok{color:#0e5b3a;background:#bfe6cf}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.row button{padding:5px 9px;font-size:12px}
+aside section,.new{background:#00000033;border:1px solid #ffffff1f;border-radius:12px;padding:14px;margin-bottom:16px}
+aside h2,.new h2{margin:0 0 8px;font:600 12px system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#cfe3d8}
+.ctx{font:13px system-ui,sans-serif;margin-bottom:6px}.ctx b{color:var(--gold)}
+.new form{display:grid;min-width:0;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:8px;align-items:center}
+.new textarea{grid-column:1/-1;min-height:48px}
+@media(max-width:700px){.new form{grid-template-columns:minmax(0,1fr)}.new input,.new select,.new button{width:100%}main{padding:16px}header{padding:14px 16px}.cols{grid-template-columns:minmax(0,1fr)}.who{margin-left:0}}
+#err{color:#ffb4a8;font:13px system-ui,sans-serif;min-height:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg width="44" height="58" viewBox="0 0 44 58" role="img" aria-label="Ace logo"><rect x="1.5" y="1.5" width="41" height="55" rx="7" fill="#f6f0e1" stroke="#d9a441" stroke-width="3"/><text x="22" y="30" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="28" fill="#14110f">A</text><path d="M22 34C13 41 10 46 15 49.5c3 2 6 .8 6.6-1.8C21.2 51.500 20.400 54 18.500 55H25.500C23.600 54 22.800 51.500 22.400 47.700c.6 2.600 3.600 3.800 6.600 1.800C34 46 31 41 22 34Z" fill="#c8372d"/></svg>
+    <div><h1>Ace</h1><small>Humans and agents, one table</small></div>
+  </div>
+  <div class="who"><label for="me">You are</label><input id="me" size="12" placeholder="your name"><span id="live" aria-live="polite">connecting</span></div>
+</header>
+<main>
+  <div>
+    <div class="new"><h2>Deal a task</h2>
+      <form id="f">
+        <input id="t" placeholder="Task title" required aria-label="Task title">
+        <input id="a" placeholder="Assignee name" aria-label="Assignee">
+        <select id="ak" aria-label="Assignee kind"><option value="human">human</option><option value="agent">agent</option></select>
+        <label style="font:13px system-ui"><input type="checkbox" id="na"> needs human approval</label>
+        <button>Add</button>
+        <textarea id="p" placeholder="Prompt or details (optional)" aria-label="Details"></textarea>
+      </form><div id="err" role="alert"></div>
+    </div>
+    <div class="cols" id="cols"></div>
+  </div>
+  <aside><section><h2>Shared context</h2><div id="ctx"></div>
+    <form id="cf"><input id="ct" placeholder="Add a note everyone can see" style="width:100%" aria-label="Context note"></form></section></aside>
+</main>
+<script>
+const ST=["todo","doing","review","blocked","done"];
+const tok=new URLSearchParams(location.search).get("token")||"";
+const q=tok?"?token="+encodeURIComponent(tok):"";
+const me=document.getElementById("me");me.value=localStorage.aceName||"";
+me.oninput=()=>localStorage.aceName=me.value;
+const err=m=>document.getElementById("err").textContent=m||"";
+const actor=()=>{if(!me.value.trim()){err("Type your name first.");throw new Error("name")}return{name:me.value.trim(),kind:"human"}};
+async function post(path,body){const r=await fetch(path+q,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ const d=await r.json();if(!r.ok){err(d.error||"error");throw new Error(d.error)}err("");return d}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function render(s){
+ const cols=document.getElementById("cols");cols.innerHTML="";
+ for(const st of ST){const c=document.createElement("div");c.className="col";c.innerHTML="<h2>"+st+"</h2>";
+  for(const t of s.tasks.filter(t=>t.status===st)){
+   const d=document.createElement("div");d.className="card";
+   const appr=t.needs_approval?(t.approved_by?'<span class="badge ok">approved by '+esc(t.approved_by)+'</span>':'<span class="badge">needs approval</span>'):"";
+   d.innerHTML="<h3>"+esc(t.title)+"</h3>"+(t.assignee?'<span class="chip '+t.assignee_kind+'">'+(t.assignee_kind==="agent"?"\u25C6 ":"\u25CF ")+esc(t.assignee)+"</span>":'<span class="chip">unassigned</span>')+appr+
+    '<div class="bar"><i style="width:'+t.progress+'%"></i></div>'+
+    '<div class="notes">'+t.notes.slice(-4).map(n=>esc(n.at+" "+n.by+": "+n.text)).join("<br>")+"</div>";
+   const row=document.createElement("div");row.className="row";
+   for(const nx of ST.filter(x=>x!==st)){const b=document.createElement("button");b.className="ghost";b.style.color="#14110f";b.style.borderColor="#14110f44";b.textContent="\u2192 "+nx;
+    b.onclick=()=>post("/api/tasks/"+t.id+"/update",{actor:actor(),status:nx}).catch(()=>{});row.appendChild(b)}
+   if(t.needs_approval){const b=document.createElement("button");b.textContent=t.approved_by?"Withdraw":"Approve";
+    b.onclick=()=>post("/api/tasks/"+t.id+"/approve",{actor:actor(),approve:!t.approved_by}).catch(()=>{});row.appendChild(b)}
+   d.appendChild(row);c.appendChild(d)}
+  cols.appendChild(c)}
+ document.getElementById("ctx").innerHTML=s.context.slice(-12).map(c=>'<div class="ctx"><b>'+esc(c.by)+"</b> "+esc(c.text)+"</div>").join("")||'<div class="ctx">Nothing yet.</div>';
+}
+document.getElementById("f").onsubmit=async e=>{e.preventDefault();
+ try{await post("/api/tasks",{actor:actor(),title:t.value,prompt:p.value,assignee:a.value,assignee_kind:ak.value,needs_approval:na.checked});
+ e.target.reset()}catch(_){}};
+document.getElementById("cf").onsubmit=async e=>{e.preventDefault();
+ try{await post("/api/context",{actor:actor(),text:ct.value});ct.value=""}catch(_){}};
+const ev=new EventSource("/api/events"+q);
+ev.onmessage=m=>{document.getElementById("live").textContent="live";render(JSON.parse(m.data))};
+ev.onerror=()=>document.getElementById("live").textContent="reconnecting";
+</script>
+</body>
+</html>

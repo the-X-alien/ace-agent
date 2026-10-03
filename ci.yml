@@ -1,0 +1,27 @@
+name: ci
+on:
+  workflow_dispatch:   # manual only until free Actions capacity is confirmed
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Install from this checkout and run the CLI
+        shell: bash
+        run: |
+          python -m venv /tmp/acevenv || python -m venv "$RUNNER_TEMP/acevenv"
+          V="$RUNNER_TEMP/acevenv"; [ -d "$V" ] || V=/tmp/acevenv
+          if [ -x "$V/bin/python" ]; then P="$V/bin/python"; else P="$V/Scripts/python.exe"; fi
+          "$P" -m pip install .
+          "$P" -m ace --version
+          "$P" -m ace doctor

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ace-agent"
+version = "0.1.0"
+description = "Ace: a free, open-source harness layer for the AI providers you already use. Automatic skills, output checks, shared human and agent work."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+ace = "ace.cli:main"
+
+[tool.setuptools]
+packages = ["ace"]
+
+[tool.setuptools.package-data]
+ace = ["skills_data/*.md", "ui/*"]
