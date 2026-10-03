@@ -9,7 +9,7 @@ import urllib.request
 
 from . import __version__
 from . import config as cfgmod
-from . import connectors, providers, report, runner, update as upd, skills as sk
+from . import agent as agentmod, connectors, providers, report, runner, update as upd, skills as sk
 from .board import serve
 
 
@@ -190,6 +190,38 @@ def cmd_uninstall(a):
     return 0
 
 
+def _ask(kind, detail):
+    if not sys.stdin.isatty():
+        return False
+    print("\nAce wants to %s: %s" % ({"write": "write a file", "edit": "edit a file", "shell": "run a command"}.get(kind, kind), detail), file=sys.stderr)
+    try:
+        return input("Allow? [y/N] ").strip().lower() in ("y", "yes")
+    except EOFError:
+        return False
+
+
+def cmd_agent(a):
+    r = cfgmod.root()
+    cfg = cfgmod.load(r)
+    prov = _provider(a, cfg)
+    if getattr(prov, "cfg", {}).get("type") == "echo":
+        print("[MOCK provider: canned output, it cannot use tools. Pick a real provider with --provider, see: ace-agent doctor]", file=sys.stderr)
+    tools = agentmod.Tools(r, approve=_ask, auto_edit=a.auto_edit, allow_shell=a.allow_shell)
+    res = agentmod.run(prov, a.task, r, tools, max_steps=a.max_steps, session=a.resume, say=lambda m: print(m, file=sys.stderr))
+    print(res["answer"] or "(no final answer: stopped after %d steps)" % res["steps"])
+    print("\n-- steps %d | calls %d | %s | session %s (resume: --resume %s)" % (res["steps"], res["calls"], res["stopped"], res["session"], res["session"]), file=sys.stderr)
+    return 0 if res["stopped"] == "done" else 1
+
+
+def cmd_sessions(a):
+    rows = agentmod.list_sessions(cfgmod.root())
+    for sid, n, first in rows:
+        print("%s  %d events  %s" % (sid, n, first))
+    if not rows:
+        print("No agent sessions yet. Try: ace-agent agent \"your task\"")
+    return 0
+
+
 def cmd_update(a):
     if a.auto:
         upd.set_auto(a.auto)
@@ -211,6 +243,14 @@ def build():
         return s
     add("init", cmd_init, "create .ace/ with a starter config")
     add("doctor", cmd_doctor, "show versions, providers and skills")
+    s = add("agent", cmd_agent, "let a model read, edit files and run commands in this project (asks first)")
+    s.add_argument("task")
+    s.add_argument("--provider")
+    s.add_argument("--max-steps", type=int, default=12)
+    s.add_argument("--resume", help="continue a saved session id")
+    s.add_argument("--auto-edit", action="store_true", help="allow file writes and edits without asking")
+    s.add_argument("--allow-shell", action="store_true", help="allow shell commands without asking")
+    add("sessions", cmd_sessions, "list saved agent sessions")
     s = add("update", cmd_update, "check for and install the latest Ace release")
     s.add_argument("--check", action="store_true", help="only say whether a newer version exists")
     s.add_argument("--auto", choices=["on", "notify", "off"], help="on: install new releases automatically; notify: just tell me (default); off: never check")
