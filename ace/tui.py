@@ -255,11 +255,25 @@ class App:
         out = body + [mid]
         if started:
             out += [self._pad(r, cols) for r in self._inputbox(cols)]
-        left = " " + os.path.abspath(self.chat.root)
         right = "ace %s " % __version__
-        gap = max(1, cols - len(left) - len(right))
-        out.append([("dim", left + " " * gap + right)])
-        return out
+        room = max(0, cols - len(right) - 2)
+        path = os.path.abspath(self.chat.root)
+        if len(path) > room:
+            path = ("..." + path[-max(0, room - 3):]) if room > 3 else path[:room]
+        left = " " + path
+        out.append([("dim", left + " " * max(1, cols - len(left) - len(right)) + right)])
+        return [self._clip(r, cols) for r in out]
+
+    @staticmethod
+    def _clip(row, width):
+        res, used = [], 0
+        for st, t in row:
+            if used >= width:
+                break
+            t = t[: width - used]
+            used += len(t)
+            res.append((st, t))
+        return res
 
     @staticmethod
     def _pad(row, width):
