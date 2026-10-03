@@ -209,11 +209,19 @@ def make_handler(board, tokens, allowed_hosts):
                 return
             if "application/json" not in (self.headers.get("Content-Type") or ""):
                 return self._send(415, json.dumps({"error": "send application/json"}))
-            n = int(self.headers.get("Content-Length") or 0)
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                n = -1
+            if n < 0:
+                self.close_connection = True
+                return self._send(400, json.dumps({"error": "bad Content-Length"}))
             if n > 200000:
                 return self._send(413, json.dumps({"error": "too large"}))
             try:
                 d = json.loads(self.rfile.read(n) or b"{}")
+                if not isinstance(d, dict):
+                    raise BoardError("body must be a JSON object")
                 path = urlparse(self.path).path.strip("/").split("/")
                 actor = d.get("actor")
                 if self.role and isinstance(actor, dict):
@@ -236,7 +244,7 @@ def make_handler(board, tokens, allowed_hosts):
                 return self._send(404, json.dumps({"error": "not found"}))
             except BoardError as e:
                 return self._send(e.code, json.dumps({"error": str(e)}))
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, OverflowError) as e:
                 return self._send(400, json.dumps({"error": "bad request: %s" % e}))
 
     return H
