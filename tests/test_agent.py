@@ -199,3 +199,16 @@ class PlanMode(unittest.TestCase):
                 with self.assertRaises(agent.ToolError):
                     t.call(name, args)
             self.assertFalse(os.path.exists(os.path.join(d, "b")))
+
+
+class SkillsInAgent(unittest.TestCase):
+    def test_skill_rules_added_and_shown(self):
+        import tempfile
+        from ace import agent
+        with tempfile.TemporaryDirectory() as d:
+            shown = []
+            out = agent.with_skills("build a responsive landing page website", d, say=shown.append)
+            self.assertIn("web-ui-design", shown[0])
+            self.assertIn("## Task\nbuild a responsive landing page website", out)
+            self.assertIn("write_file", out)
+            self.assertEqual(agent.with_skills("hello there", d, say=shown.append), "hello there")
