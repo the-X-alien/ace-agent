@@ -207,7 +207,7 @@ def cmd_agent(a):
     if getattr(prov, "cfg", {}).get("type") == "echo":
         print("[MOCK provider: canned output, it cannot use tools. Pick a real provider with --provider, see: ace-agent doctor]", file=sys.stderr)
     tools = agentmod.Tools(r, approve=_ask, auto_edit=a.auto_edit, allow_shell=a.allow_shell)
-    res = agentmod.run(prov, a.task, r, tools, max_steps=a.max_steps, session=a.resume, say=lambda m: print(m, file=sys.stderr))
+    res = agentmod.run(prov, a.task, r, tools, max_steps=a.max_steps, session=a.resume, say=lambda m: print(m, file=sys.stderr), skills=True)
     print(res["answer"] or "(no final answer: stopped after %d steps)" % res["steps"])
     print("\n-- steps %d | calls %d | %s | session %s (resume: --resume %s)" % (res["steps"], res["calls"], res["stopped"], res["session"], res["session"]), file=sys.stderr)
     return 0 if res["stopped"] == "done" else 1
