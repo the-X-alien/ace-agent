@@ -147,7 +147,7 @@ class Tools:
         n = text.count(old) if old else 0
         if n != 1:
             raise ToolError("old text must appear exactly once, found %d times" % n)
-        if not self._ok("edit", "%s: replace %d characters with %d" % (path, len(old), len(new))):
+        if not self._ok("edit", "%s\n%s\n%s" % (path, "\n".join("- " + l for l in old.split("\n")[:12]), "\n".join("+ " + l for l in new.split("\n")[:12]))):
             raise ToolError("the user did not approve this edit")
         with open(f, "w", encoding="utf-8", newline="") as fh:
             fh.write(text.replace(old, new, 1))
