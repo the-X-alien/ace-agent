@@ -136,7 +136,13 @@ class Tools:
         os.makedirs(os.path.dirname(f), exist_ok=True)
         with open(f, "w", encoding="utf-8", newline="") as fh:
             fh.write(content)
-        return "wrote %s (%d characters)" % (path, len(content))
+        msg = "wrote %s (%d characters)" % (path, len(content))
+        if path.lower().endswith((".html", ".htm")):
+            from . import gate
+            bad = [m for lvl, m in gate.check_html(content) if lvl == "hard"]
+            if bad:
+                msg += "\nPROBLEMS to fix with another write_file of the same path: " + "; ".join(bad)
+        return msg
 
     def t_edit_file(self, path, old, new):
         f = self.ws.path(path)
@@ -176,7 +182,11 @@ def parse_tool(text):
         d = json.loads(m.group(1))
         if not isinstance(d, dict) or "tool" not in d:
             raise ValueError("missing tool")
-        return d["tool"], d.get("args", {})
+        args = d.get("args")
+        if not isinstance(args, dict):
+            # small models often put the arguments next to "tool" instead of under "args"
+            args = {k: v for k, v in d.items() if k != "tool"}
+        return d["tool"], args
     except ValueError as e:
         return "error", "could not read the tool block: %s" % e
 
