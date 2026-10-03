@@ -66,7 +66,7 @@ Ace talks to any local server that speaks the OpenAI chat format. Pick one, and 
 - **Ollama**: its Terms of Service say you must be at least 18 (https://ollama.com/terms), so check that before using it.
 - **LM Studio**: its terms are at https://lmstudio.ai/app-terms; we did not verify an age rule, so read them first.
 
-Then add a provider in `.ace/config.json`, for example `"lm": {"type": "openai-compatible", "base_url": "http://localhost:8080/v1", "model": "local", "max_tokens": 1500}`, and run `ace-agent site "your idea" --provider lm` or `ace-agent` and type `/model lm`. Defaults for LM Studio (`localhost:1234`) and Ollama (`localhost:11434`) are already in the provider list.
+Check that a provider answers with `ace-agent ping --provider NAME`. Then add a provider in `.ace/config.json`, for example `"lm": {"type": "openai-compatible", "base_url": "http://localhost:8080/v1", "model": "local", "max_tokens": 1500}`, and run `ace-agent site "your idea" --provider lm` or `ace-agent` and type `/model lm`. Defaults for LM Studio (`localhost:1234`) and Ollama (`localhost:11434`) are already in the provider list.
 
 A 1.5B model was the only one tried and it writes poor pages. Larger models have not been tested through Ace yet. Bigger models need more RAM (a 7B coder model needs roughly 6 to 8 GB).
 
