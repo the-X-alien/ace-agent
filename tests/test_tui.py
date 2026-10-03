@@ -40,6 +40,13 @@ class TuiTest(unittest.TestCase):
         self.assertTrue(all(sum(len(x) for _, x in row) <= 40 for row in r))
         self.assertIn("ace", self.text(a))
 
+    def test_long_folder_path_never_overflows(self):
+        long_root = os.path.join(self.d, "a" * 90, "b" * 30)
+        for w in (24, 40, 80, 140):
+            a = tui.App(long_root, size=lambda w=w: (w, 12))
+            a.add("hi", "user")
+            self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()), w)
+
     def test_typing_and_command(self):
         a = self.app()
         for k in typed("/help"):
