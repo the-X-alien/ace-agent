@@ -1,8 +1,8 @@
 #!/bin/sh
 # Ace installer for macOS and Linux. Installs a pinned version, is safe to run twice, and never asks for keys.
-# Usage: ACE_REF=v0.1.1 sh install.sh        (ACE_SOURCE overrides the install source, used for testing)
+# Usage: ACE_REF=v0.1.2 sh install.sh        (ACE_SOURCE overrides the install source, used for testing)
 set -eu
-REF="${ACE_REF:-v0.1.1}"
+REF="${ACE_REF:-v0.1.2}"
 SOURCE="${ACE_SOURCE:-git+https://github.com/the-X-alien/ace-agent@${REF}}"
 
 say() { printf '%s\n' "$*"; }
