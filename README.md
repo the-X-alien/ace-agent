@@ -48,6 +48,16 @@ Run `ace-agent` with no arguments in a terminal for the full-screen UI (type `/`
 
 The model can list and read files, search, write and edit files, and run shell commands, only inside the project folder. Every write, edit and command asks you first. This is permission prompting, not a sandbox: file tools are confined to the project folder, but an approved shell command runs with your user rights and can reach anything you can, so read commands before you say yes; `--auto-edit` and `--allow-shell` skip the question. Without a terminal to ask in, edits and commands are refused. Sessions are saved in `.ace/sessions/` and resume with `--resume <id>`; `ace-agent sessions` lists them. Tool calls travel as plain text in a fixed format, so any provider can in principle be used, but the model has to follow that format; only scripted fake models have been tested so far. The default `mock` provider cannot use tools: pick a real one. Tested with scripted fake models on Linux and the Windows runner; not yet measured against real models, and not yet compared with other agents. No claims about speed or quality.
 
+## Build a website from one prompt (new, early)
+
+```sh
+ace-agent site "A cozy neighbourhood coffee shop called Bean There in Portland" --provider lmstudio
+```
+
+Writes `index.html`. Ace asks the model for the content in five short steps (name and tagline, about, offerings with prices, sample reviews, contact), retries unusable answers, assembles the page and runs its HTML check. The words come from the model; the layout and CSS come from Ace's built-in template, so this is not a free-form coding agent. It works with small local models: it was run with Qwen2.5-Coder-1.5B (llama.cpp) on a 2-CPU machine, about 90 seconds per page. Details such as addresses, hours and reviews are invented by the model and the reviews are labelled as samples. Set `"max_tokens"` on an openai-compatible provider in `.ace/config.json` to stop runaway replies. Needs a configured provider; the default mock cannot do it.
+
+What is and is not covered from the team's feature list: [docs/COVERAGE.md](docs/COVERAGE.md).
+
 ## Quick start
 
     ace init                      # creates .ace/config.json
