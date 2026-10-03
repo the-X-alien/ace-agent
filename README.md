@@ -58,6 +58,15 @@ Writes `index.html`. Ace asks the model for the content in five short steps (nam
 
 What is and is not covered from the team's feature list: [docs/COVERAGE.md](docs/COVERAGE.md).
 
+## Use a free local model (no account, no key)
+
+1. Install [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com) and download a coding model that fits your RAM (a 7B coder model needs roughly 8 GB; smaller models write worse code).
+2. Start its local server (LM Studio: Developer tab, Start Server; Ollama runs one by itself).
+3. In your project folder run `ace-agent init`, then in `ace-agent` type `/model lmstudio <model-name>` (or `/model ollama <model-name>`), or edit `.ace/config.json`.
+4. Try `ace-agent site "your idea" --provider lmstudio` or just `ace-agent`.
+
+Any llama.cpp `llama-server` also works: add an `openai-compatible` provider with `base_url` `http://localhost:8080/v1`. Small models (about 1.5B) were tried and write poor pages; no larger model has been tested through Ace yet.
+
 ## Quick start
 
     ace init                      # creates .ace/config.json
