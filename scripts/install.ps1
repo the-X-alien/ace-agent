@@ -1,8 +1,8 @@
 # Ace installer for Windows (PowerShell 5.1 or 7). Installs a pinned version, is safe to run twice, never asks for keys or admin rights.
-# One line:  irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.ps1 | iex
+# One line:  irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.5/scripts/install.ps1 | iex
 # Remove:    $env:ACE_UNINSTALL = "1"; irm <same url> | iex
 $ErrorActionPreference = "Stop"
-$ref = if ($env:ACE_REF) { $env:ACE_REF } else { "v0.1.4" }
+$ref = if ($env:ACE_REF) { $env:ACE_REF } else { "v0.1.5" }
 $source = if ($env:ACE_SOURCE) { $env:ACE_SOURCE } else { "https://github.com/the-X-alien/ace-agent/archive/refs/tags/$ref.zip" }
 $base = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME "AppData\Local" }
 $home_dir = if ($env:ACE_HOME) { $env:ACE_HOME } else { Join-Path $base "ace-agent" }
