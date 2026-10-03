@@ -217,7 +217,7 @@ class BoardTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         return "http://127.0.0.1:%d" % srv.server_address[1], b, tok
 
-    H = {"name": "Dhiaan", "kind": "human"}
+    H = {"name": "Alice", "kind": "human"}
     A = {"name": "bot", "kind": "agent"}
 
     def test_task_lifecycle_and_approval_gate(self):
@@ -230,7 +230,7 @@ class BoardTests(unittest.TestCase):
         c, d = call(base, "/api/tasks/%d/approve" % tid, {"actor": self.A})
         self.assertEqual(c, 403)
         c, d = call(base, "/api/tasks/%d/approve" % tid, {"actor": self.H})
-        self.assertEqual((c, d["approved_by"]), (200, "Dhiaan"))
+        self.assertEqual((c, d["approved_by"]), (200, "Alice"))
         c, d = call(base, "/api/tasks/%d/update" % tid, {"actor": self.A, "status": "done"})
         self.assertEqual((c, d["status"], d["progress"]), (200, "done", 100))
 
@@ -269,7 +269,7 @@ class BoardTests(unittest.TestCase):
         base, _, tok = self.start(host="0.0.0.0")
         _, t = call(base, "/api/tasks", {"actor": self.H, "title": "gate", "needs_approval": True}, token=tok)
         # the agent token claims to be a human in the payload; the server overrides the kind
-        c, d = call(base, "/api/tasks/%d/approve" % t["id"], {"actor": {"name": "Dhiaan", "kind": "human"}}, token=self.atok)
+        c, d = call(base, "/api/tasks/%d/approve" % t["id"], {"actor": {"name": "Alice", "kind": "human"}}, token=self.atok)
         self.assertEqual(c, 403)
         c, d = call(base, "/api/tasks/%d/update" % t["id"], {"actor": {"name": "x", "kind": "human"}, "status": "done"}, token=self.atok)
         self.assertEqual(c, 409)
