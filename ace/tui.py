@@ -90,6 +90,26 @@ class Sink:
         return False
 
 
+def md_line(text, fence):
+    """Tiny markdown pass for one assistant line. Returns (style, text, fence_open)."""
+    body = text[2:] if text.startswith("\u258c ") else text
+    if body.lstrip().startswith("```"):
+        return "dim", ("\u2500\u2500 " + body.strip()[3:].strip() + " \u2500\u2500") if not fence and body.strip()[3:].strip() else "\u2500\u2500\u2500", not fence
+    if fence:
+        if body.startswith("+") and not body.startswith("+++"):
+            return "add", body, fence
+        if body.startswith("-") and not body.startswith("---"):
+            return "del", body, fence
+        return "code", " " + body, fence
+    m = re.match(r"^(#{1,6})\s+(.*)$", body)
+    if m:
+        return "bold", re.sub(r"\*\*|`", "", m.group(2)), fence
+    body = re.sub(r"\*\*(.+?)\*\*", r"\1", body)
+    body = re.sub(r"`([^`]+)`", r"\1", body)
+    body = re.sub(r"^(\s*)[-*] ", "\\1\u2022 ", body)
+    return "ans", body, fence
+
+
 def wrap(text, width):
     out = []
     for raw in text.split("\n"):
@@ -156,9 +176,12 @@ class App:
         with self.lock:
             lines = list(self.lines)
         out = []
+        fence = False
         for style, text in lines:
             if style == "brand":
                 continue
+            if style == "ans":
+                style, text, fence = md_line(text, fence)
             for w in wrap(text, max(10, width - 3)):
                 out.append((style, w))
         return out
@@ -253,6 +276,10 @@ class App:
                     body.append([("ubar", " \u2503 "), ("user", t.ljust(mw - 3))])
                 elif st == "ans":
                     body.append([("", "   " + (t[2:] if t.startswith("\u258c ") else t))])
+                elif st == "code":
+                    body.append([("", "   "), ("panel", t.ljust(max(0, mw - 6)))])
+                elif st in ("add", "del", "bold"):
+                    body.append([("", "   "), (st, t)])
                 elif st == "tool":
                     body.append([("tool", "   " + t)])
                 else:
@@ -304,7 +331,7 @@ class App:
         out = out or sys.stdout
         cols = self.size()[0]
         cols = max(cols, 24)
-        sty = {"bold": "1", "dim": "38;2;128;128;128", "warn": "38;2;250;178;131", "add": "38;2;127;216;143", "del": "38;2;224;108;117",
+        sty = {"bold": "1", "dim": "38;2;128;128;128", "code": "48;2;30;30;30;38;2;238;238;238", "warn": "38;2;250;178;131", "add": "38;2;127;216;143", "del": "38;2;224;108;117",
                "tool": "38;2;128;128;128", "ok": "38;2;127;216;143", "logo": "1;38;2;238;238;238", "sep": "38;2;60;60;60",
                "user": "48;2;30;30;30;38;2;238;238;238", "ubar": "48;2;30;30;30;38;2;92;156;245",
                "pbar": "48;2;30;30;30;38;2;92;156;245", "panel": "48;2;30;30;30;38;2;238;238;238", "pdim": "48;2;30;30;30;38;2;110;110;110",
