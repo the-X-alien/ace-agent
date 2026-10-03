@@ -10,17 +10,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install with the PowerShell installer from this checkout
+      - name: Install via pipx path
         shell: powershell
         run: |
           $env:ACE_SOURCE = "."
-          $env:ACE_HOME = "$env:RUNNER_TEMP\ace-home"
           powershell -ExecutionPolicy Bypass -File scripts\install.ps1
-      - name: Run installed ace
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $bin = (pipx environment --value PIPX_BIN_DIR).Trim()
+          & "$bin\ace.exe" --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & "$bin\ace.exe" doctor
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Install via venv path (no pipx)
         shell: powershell
         run: |
-          & "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe" --version
-          & "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe" doctor
+          $env:ACE_SOURCE = "."
+          $env:ACE_NO_PIPX = "1"
+          $env:ACE_HOME = "$env:RUNNER_TEMP\ace-home"
+          powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+          $ace = "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe"
+          & $ace --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & $ace doctor
+          if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Unit tests
         shell: powershell
-        run: python -m unittest discover -s tests
+        run: |
+          python -m unittest discover -s tests
+          if ($LASTEXITCODE -ne 0) { exit 1 }
