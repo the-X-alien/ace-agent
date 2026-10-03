@@ -150,7 +150,22 @@ class Tools:
             bad = [m for lvl, m in gate.check_html(content) if lvl == "hard"]
             if bad:
                 msg += "\nPROBLEMS to fix with another write_file of the same path: " + "; ".join(bad)
+            msg += self._missing_assets(path, content)
         return msg
+
+    def _missing_assets(self, path, content):
+        """Local files an HTML page links to that do not exist yet (stylesheets, scripts, images)."""
+        base = os.path.dirname(self.ws.path(path))
+        miss = []
+        for m in re.finditer(r"""(?:href|src)\s*=\s*["']([^"'#?]+)["']""", content, re.I):
+            u = m.group(1).strip()
+            if re.match(r"^(https?:|//|data:|mailto:|tel:|javascript:)", u, re.I):
+                continue
+            if not os.path.exists(os.path.normpath(os.path.join(base, u))) and u not in miss:
+                miss.append(u)
+        if not miss:
+            return ""
+        return "\nMISSING FILES linked by %s: %s. Create each with write_file, or remove the link and put the CSS in a <style> tag." % (path, ", ".join(miss))
 
     def t_edit_file(self, path, old, new):
         f = self.ws.path(path)
@@ -271,6 +286,7 @@ def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeo
 
     add("user", task)
     steps, calls, answer, stopped = 0, 0, "", "max_steps"
+    recent = []
     while steps < max_steps:
         steps += 1
         reply = provider.complete(build_prompt(events), timeout=timeout)
@@ -286,6 +302,15 @@ def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeo
             add("tool", "error: " + args)
             continue
         say("step %d: %s %s" % (steps, name, json.dumps(args)[:120]))
+        sig = json.dumps([name, args], sort_keys=True, default=str)
+        recent.append(sig)
+        if len(recent) >= 3 and recent[-1] == recent[-2] == recent[-3]:
+            add("tool", "error: you ran the same call three times in a row. Stopping: the loop is not making progress.")
+            stopped = "loop"
+            break
+        if len(recent) >= 2 and recent[-1] == recent[-2]:
+            add("tool", "error: you just did exactly this. Do something different, or reply in plain text with a short final answer if the task is done.")
+            continue
         try:
             res = tools.call(name, args)
         except ToolError as e:
