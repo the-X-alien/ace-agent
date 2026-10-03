@@ -114,7 +114,7 @@ def check_html(src):
         issues.append(("advisory", "%d image(s) without alt text" % p.imgs_no_alt))
     if p.empty_links:
         issues.append(("advisory", "%d link(s) with empty or '#' href" % p.empty_links))
-    if re.search(r"lorem ipsum|\bTODO\b|your (name|company) here", src, re.I):
+    if re.search(r"lorem ipsum|\bTODO\b|your (name|company) here|<!--[^>]*\bhere\b[^>]*-->|/\*[^*]*\byour\b[^*]*\bhere\b[^*]*\*/", src, re.I):
         issues.append(("hard", "placeholder text left in the page"))
     if re.search(r"(src|href)=[\"']https?://", src, re.I):
         issues.append(("advisory", "loads an external resource (not self-contained)"))
