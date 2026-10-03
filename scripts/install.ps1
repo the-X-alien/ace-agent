@@ -1,7 +1,7 @@
 # Ace installer for Windows (PowerShell). Installs a pinned version, is safe to run twice, and never asks for keys.
-# Usage: $env:ACE_REF = "v0.1.0"; powershell -ExecutionPolicy Bypass -File install.ps1
+# Usage: $env:ACE_REF = "v0.1.1"; powershell -ExecutionPolicy Bypass -File install.ps1
 $ErrorActionPreference = "Stop"
-$ref = if ($env:ACE_REF) { $env:ACE_REF } else { "v0.1.0" }
+$ref = if ($env:ACE_REF) { $env:ACE_REF } else { "v0.1.1" }
 $source = if ($env:ACE_SOURCE) { $env:ACE_SOURCE } else { "git+https://github.com/the-X-alien/ace-agent@$ref" }
 
 $py = $null
