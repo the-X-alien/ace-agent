@@ -167,3 +167,21 @@ class LoopAndAssets(unittest.TestCase):
             self.assertIn("a.css", out)
             self.assertIn("app.js", out)
             self.assertNotIn("e.com", out)
+
+
+class ContextBudget(unittest.TestCase):
+    def test_budget_drops_old_turns_keeps_task_and_newest(self):
+        from ace import agent
+        ev = [{"role": "user", "text": "TASK-ONE"}]
+        for i in range(30):
+            ev.append({"role": "assistant", "text": "a%d " % i + "x" * 200})
+            ev.append({"role": "tool", "text": "t%d " % i + "y" * 200})
+        full = agent.build_prompt(ev)
+        small = agent.build_prompt(ev, max_chars=len(agent.SYSTEM) + 2500)
+        self.assertLess(len(small), len(full))
+        self.assertLessEqual(len(small), len(agent.SYSTEM) + 2500 + 200)
+        self.assertIn("TASK-ONE", small)
+        self.assertIn("t29 ", small)
+        self.assertNotIn("a0 ", small)
+        self.assertIn("earlier turns dropped", small)
+        self.assertEqual(agent.build_prompt(ev, max_chars=None), full)
