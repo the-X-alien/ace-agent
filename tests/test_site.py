@@ -35,6 +35,13 @@ class SiteTest(unittest.TestCase):
         for s in ("Bean There", "Brewing joy since 2020", "$4.50", "Maya", "9:00 AM - 5:00 PM", "(503) 555-0100", "<h2>Menu</h2>"):
             self.assertIn(s, page)
 
+    def test_long_section_title_and_missing_phone(self):
+        m = Scripted()
+        m.answers[4] = "Menu/Services: Grooming for dogs\n1 Main St\n9am-5pm\n9am-4pm"
+        page, hard = site.build(m, "x", say=lambda s: None)
+        self.assertIn("<h2>Menu</h2>", page)
+        self.assertNotIn("Grooming for dogs", page)
+
     def test_unusable_answers_raise(self):
         class Bad:
             def complete(self, p, timeout=0):
