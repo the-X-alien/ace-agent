@@ -69,6 +69,15 @@ class ChatTests(unittest.TestCase):
         c.loop()
         self.assertIn("MOCK", err.getvalue())
 
+    def test_model_command_sets_model(self):
+        out = io.StringIO()
+        c = chat.Chat(self.d, out=out, err=io.StringIO())
+        c.command("/model featherless some/model-x")
+        self.assertEqual(c.pname, "featherless")
+        self.assertEqual(c.cfg["providers"]["featherless"]["model"], "some/model-x")
+        c.command("/model nope")
+        self.assertIn("No provider", out.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
