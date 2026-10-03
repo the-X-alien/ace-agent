@@ -1,0 +1,34 @@
+name: oneliner-check
+on:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: One-line install (exact README command)
+        shell: powershell
+        run: irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.ps1 | iex
+      - name: Launch
+        shell: powershell
+        run: |
+          $bin = (pipx environment --value PIPX_BIN_DIR).Trim()
+          & "$bin\ace.exe" --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & "$bin\ace.exe" doctor
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: One-line install (exact README command)
+        run: curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.sh | sh
+      - name: Launch
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          ace --version
+          ace doctor
