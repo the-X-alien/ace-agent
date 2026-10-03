@@ -9,6 +9,7 @@ from . import providers, runner
 
 HELP = """Type a task and press Enter. Commands:
   /model            list providers, /model NAME [MODEL] switches (and sets the model for this session)
+  /plan  /build     read-only planning mode, or back to building
   /yes-edits        stop asking before file edits and writes   (/ask turns questions back on)
   /yes-shell        stop asking before shell commands
   /sessions         list saved sessions, /resume ID continues one, /new starts fresh
@@ -28,6 +29,7 @@ class Chat:
         self.pname = provider_name or self.cfg.get("default_provider", "mock")
         self.inp, self.out, self.err = inp, out or sys.stdout, err or sys.stderr
         self.auto_edit = self.allow_shell = False
+        self.plan = False
         self.sid = None
 
     def say(self, s=""):
@@ -70,6 +72,12 @@ class Chat:
             else:
                 for n, c in self.cfg["providers"].items():
                     self.say("%s %s  (%s%s)" % ("*" if n == self.pname else " ", n, c.get("type"), ", model " + c["model"] if c.get("model") else ""))
+        elif cmd == "/plan":
+            self.plan = True
+            self.say("Plan mode: the model can read and search but not write, edit or run commands. /build to go back.")
+        elif cmd == "/build":
+            self.plan = False
+            self.say("Build mode.")
         elif cmd == "/yes-edits":
             self.auto_edit = True
             self.say("Edits and writes will not ask. /ask to undo.")
@@ -119,7 +127,7 @@ class Chat:
         except Exception as e:
             self.say("error: %s" % e)
             return
-        tools = agentmod.Tools(self.root, approve=self.approve, auto_edit=self.auto_edit, allow_shell=self.allow_shell)
+        tools = agentmod.Tools(self.root, approve=self.approve, auto_edit=self.auto_edit, allow_shell=self.allow_shell, read_only=self.plan)
         try:
             res = agentmod.run(prov, text, self.root, tools, session=self.sid, say=lambda m: self.note(_c("2", m)))
         except KeyboardInterrupt:
