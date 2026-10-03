@@ -30,6 +30,12 @@ Read the scripts first if you like: scripts/install.sh and scripts/install.ps1.
 
 Project data lives in each project's `.ace/` folder.
 
+## Agent mode (new, early)
+
+    ace-agent agent "fix the failing test in tests/test_math.py" --provider openai
+
+The model can list and read files, search, write and edit files, and run shell commands, only inside the project folder. Every write, edit and command asks you first; `--auto-edit` and `--allow-shell` skip the question. Without a terminal to ask in, edits and commands are refused. Sessions are saved in `.ace/sessions/` and resume with `--resume <id>`; `ace-agent sessions` lists them. Tool calls travel as plain text, so it works with any provider Ace supports. The default `mock` provider cannot use tools: pick a real one. Tested with scripted fake models on Linux and the Windows runner; not yet measured against real models, and not yet compared with other agents. No claims about speed or quality.
+
 ## Quick start
 
     ace init                      # creates .ace/config.json
@@ -68,3 +74,9 @@ Two modes:
     python -m unittest discover -s tests -v
 
 MIT licensed. See `LICENSE`.
+
+## Credits
+
+Ace is MIT licensed. Ideas and prior art that shaped it, no code copied so far: [OmniRoute](https://github.com/diegosouzapw/OmniRoute) (MIT, Copyright (c) 2026 diegosouzapw) for provider routing, fallback and light prompt-trimming ideas such as collapsing whitespace and capping tool-result length; [OpenCode](https://opencode.ai) for the feature set that agent mode is measured against. If code is copied later, its licence text goes in a NOTICE file.
+
+Updates: `ace-agent update` downloads the release from this repository over HTTPS and rolls back if the new version does not start. Release archives are not signed and have no pinned checksum, so this is not verified publisher authentication.
