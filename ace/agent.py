@@ -74,7 +74,8 @@ def _clip(s, n=MAX_OUT):
 
 
 class Tools:
-    def __init__(self, root, approve=None, auto_edit=False, allow_shell=False, shell_timeout=SHELL_TIMEOUT):
+    def __init__(self, root, approve=None, auto_edit=False, allow_shell=False, shell_timeout=SHELL_TIMEOUT, read_only=False):
+        self.read_only = read_only
         self.ws = Workspace(root)
         self.approve = approve or (lambda kind, detail: False)
         self.auto_edit, self.allow_shell, self.shell_timeout = auto_edit, allow_shell, shell_timeout
@@ -83,6 +84,8 @@ class Tools:
         fn = getattr(self, "t_" + str(name), None)
         if fn is None or not isinstance(args, dict):
             raise ToolError("unknown tool or bad arguments: %s" % name)
+        if self.read_only and name in ("write_file", "edit_file", "run_shell"):
+            raise ToolError("plan mode is read-only: %s is not allowed. Read and search, then describe the plan in plain text." % name)
         return fn(**args)
 
     def t_list_dir(self, path="."):
