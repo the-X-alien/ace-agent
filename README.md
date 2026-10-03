@@ -6,33 +6,43 @@ Ace is a free, open-source harness layer for the AI providers you already use. Y
 2. **Output checks.** It checks the reply (markup, syntax, placeholder text), and asks the model to repair hard failures once.
 3. **One table for humans and agents.** A shared board where people and agents take tasks, post live progress, share context, and a human approves before anything is marked done.
 
-Status: **v0.1.1, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
+Status: **v0.1.4, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
 
-## Install
+## Install (v0.1.4)
 
-Needs Python 3.9 or newer. No other dependencies.
+Needs Python 3.9 or newer (on Windows the installer adds Python 3.12 for you with winget if it is missing). No git, no pipx, no admin rights.
 
-One line (pinned to v0.1.4). Needs Python 3.9+; no git, no pipx, no admin rights.
+**Windows (PowerShell):**
 
-macOS and Linux (Terminal):
+```powershell
+irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.ps1 | iex
+```
 
-    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.sh | sh
+**macOS and Linux (Terminal):**
 
-Windows (PowerShell):
+```sh
+curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.sh | sh
+```
 
-    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.ps1 | iex
+Then check it and start it in your project folder:
 
-Then type `ace-agent doctor` (`ace` works too, unless another program on your PC already uses that name; the installer tells you and never touches it). The installer sets up its own private Python environment, puts `ace` on your PATH for this window and your future terminals (your user PATH only, added once), and starts `ace --version` to check itself. On Windows, if Python is missing it installs Python 3.12 for your user with winget. On macOS and Linux a terminal that was already open needs to be reopened.
+```sh
+ace-agent --version   # prints 0.1.4
+ace-agent             # full-screen terminal UI
+```
 
-Remove it: Windows `$env:ACE_UNINSTALL="1"; irm <same url> | iex`, macOS/Linux `curl -fsSL <same url> | ACE_UNINSTALL=1 sh`.
-
-Read the scripts first if you like: scripts/install.sh and scripts/install.ps1.
+- Use `ace-agent`. The short `ace` command is also installed unless another program on your PC already uses that name; the installer tells you and never touches it.
+- The installer makes its own private Python environment, adds the command to your user PATH once, and runs a version check. Reopen an already open terminal on macOS and Linux.
+- Update later with `ace-agent update` (it rolls back if the new version fails to start).
+- Remove it: Windows `$env:ACE_UNINSTALL="1"; irm <same url> | iex`, macOS/Linux `curl -fsSL <same url> | ACE_UNINSTALL=1 sh`.
+- Tested: the pinned one-liners run green on GitHub's Windows, Ubuntu and macOS runners ([oneliner-check](https://github.com/the-X-alien/ace-agent/actions/workflows/oneliner.yml)), and the Windows install/update and unit tests pass on a Windows runner. Not yet tested: an interactive Windows console by a person, and any real model.
+- Read the scripts first if you like: `scripts/install.sh` and `scripts/install.ps1`.
 
 Project data lives in each project's `.ace/` folder.
 
 ## Agent mode (new, early)
 
-Run `ace-agent` with no arguments in a terminal for a line-based chat (not a full-screen interface yet): `/model`, `/sessions`, `/resume`, `/yes-edits`, `/help`.
+Run `ace-agent` with no arguments in a terminal for the full-screen UI (type `/` for commands, Ctrl+P for the palette; a plain line chat is used when output is not a terminal): `/model`, `/sessions`, `/resume`, `/yes-edits`, `/help`.
 
     ace-agent agent "fix the failing test in tests/test_math.py" --provider openai
 
