@@ -12,27 +12,23 @@ Status: **v0.1.1, early.** Everything below says what exists today. Speed, cost 
 
 Needs Python 3.9 or newer. No other dependencies.
 
-One line (pinned to v0.1.2; needs Python 3.9+ and git):
+One line (pinned to v0.1.3). Needs Python 3.9+; no git, no pipx, no admin rights.
 
-macOS and Linux:
+macOS and Linux (Terminal):
 
-    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.3/scripts/install.sh | sh
 
 Windows (PowerShell):
 
-    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.ps1 | iex
+    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.3/scripts/install.ps1 | iex
 
-Or with pipx on any system:
+Then type `ace-agent doctor` (`ace` works too, unless another program on your PC already uses that name; the installer tells you and never touches it). The installer sets up its own private Python environment, puts `ace` on your PATH for this window and your future terminals (your user PATH only, added once), and starts `ace --version` to check itself. On Windows, if Python is missing it installs Python 3.12 for your user with winget. On macOS and Linux a terminal that was already open needs to be reopened.
 
-    pipx install git+https://github.com/the-X-alien/ace-agent@v0.1.2
+Remove it: Windows `$env:ACE_UNINSTALL="1"; irm <same url> | iex`, macOS/Linux `curl -fsSL <same url> | ACE_UNINSTALL=1 sh`.
 
-Then run `ace --version` and `ace doctor`. If `ace` is not found, open a new terminal, or run `pipx ensurepath`, or add the folder the installer prints to your PATH.
+Read the scripts first if you like: scripts/install.sh and scripts/install.ps1.
 
-Piping a script into a shell runs it unread, so you can instead read it first: scripts/install.sh and scripts/install.ps1. The installer puts Ace in an isolated environment, is safe to run again, and never asks for a key.
-
-Tested so far: the Windows installer on a GitHub Windows runner (pipx path and plain venv path, `ace --version`, `ace doctor`, unit tests), and the Linux installer. Not yet tested: macOS, and the one-line URLs above end to end. See the Actions tab for the runs.
-
-Remove it: `pipx uninstall ace-agent` (or `python -m pip uninstall ace-agent`). Project data lives in each project's `.ace/` folder.
+Project data lives in each project's `.ace/` folder.
 
 ## Quick start
 
