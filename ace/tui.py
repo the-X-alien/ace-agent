@@ -24,6 +24,8 @@ CSI = "\033["
 COMMANDS = [
     ("/help", "Help", False),
     ("/model", "Switch provider / model", True),
+    ("/plan", "Read-only planning mode (Tab toggles)", False),
+    ("/build", "Back to building", False),
     ("/site", "Build index.html from one idea", True),
     ("/ping", "Check the provider answers", False),
     ("/sessions", "List saved sessions", False),
@@ -191,7 +193,7 @@ class App:
     def _inputbox(self, width):
         """Prompt panel in the same layout as OpenCode's: blue left bar, padded rows, mode and model line."""
         pc = self.chat.cfg["providers"].get(self.chat.pname, {})
-        mode = "Build" if not (self.chat.auto_edit or self.chat.allow_shell) else "Build (auto)"
+        mode = "Plan" if self.chat.plan else ("Build" if not (self.chat.auto_edit or self.chat.allow_shell) else "Build (auto)")
         pad = lambda: [("pbar", "\u2503"), ("panel", " " * (width - 1))]
         if self.buf:
             body = (self.buf[-(width - 6):] + "\u2588").ljust(width - 4)
@@ -225,7 +227,7 @@ class App:
         lm = (width - bw) // 2
         for r in box:
             rows.append([("", " " * lm)] + r)
-        rows.append([("", " " * lm), ("dim", "/ commands   ctrl+p palette   ctrl+c quit".rjust(bw))])
+        rows.append([("", " " * lm), ("dim", "tab plan/build   / commands   ctrl+p palette   ctrl+c quit".rjust(bw))])
         if self.chat.cfg["providers"].get(self.chat.pname, {}).get("type") == "echo":
             rows.append([("warn", "Offline MOCK provider: it cannot use tools. Use /model to pick a real one.".center(width))])
         return (rows + [[("", "")]] * height)[:height]
@@ -374,7 +376,7 @@ class App:
                     [("", " " * lm), ("pop", (" " + (self.palette["q"] or "") + "\u2588" if self.palette["q"] else " Search").ljust(w))],
                     [("", " " * lm), ("pop", " " * w)]]
             self.palette["sel"] = max(0, min(self.palette["sel"], len(items) - 1))
-            for i, (c, d, _) in enumerate(items[:12]):
+            for i, (c, d, _) in enumerate(items[:14]):
                 rows.append([("", " " * lm), ("sel" if i == self.palette["sel"] else "pop", (" %s  %s" % (c.ljust(11), d)).ljust(w))])
             if not items:
                 rows.append([("", " " * lm), ("pop", " no matching command".ljust(w))])
@@ -393,7 +395,7 @@ class App:
         r0 = out[box_top]
         lm = len(r0[0][1]) if r0 and r0[0][0] == "" and not r0[0][1].strip() else 0
         w = sum(len(t) for _, t in r0) - lm
-        shown = items[:12]
+        shown = items[:14]
         for i, (c, d, _) in enumerate(shown):
             row = box_top - len(shown) + i
             if row < 1:
@@ -446,6 +448,9 @@ class App:
             return
         if k == "ctrl-p" and not self.pending:
             self.palette = {"q": "", "sel": 0}
+            return
+        if k == "tab" and not self.pending and not self.running and not self.popup_items():
+            self.chat.plan = not self.chat.plan
             return
         items = self.popup_items()
         if items and not self.pending:
