@@ -9,6 +9,8 @@ DEFAULT = {
         "mock": {"type": "echo"},
         "openai": {"type": "openai-compatible", "base_url": "https://api.openai.com/v1", "model": "", "key_env": "OPENAI_API_KEY"},
         "openrouter": {"type": "openai-compatible", "base_url": "https://openrouter.ai/api/v1", "model": "", "key_env": "OPENROUTER_API_KEY"},
+        "featherless": {"type": "openai-compatible", "base_url": "https://api.featherless.ai/v1", "model": "", "key_env": "FEATHERLESS_API_KEY"},
+        "lmstudio": {"type": "openai-compatible", "base_url": "http://localhost:1234/v1", "model": ""},
         "ollama": {"type": "openai-compatible", "base_url": "http://localhost:11434/v1", "model": ""},
         "anthropic": {"type": "anthropic", "model": "", "key_env": "ANTHROPIC_API_KEY"},
         "claude-cli": {"type": "cli", "command": ["claude", "-p"], "prompt_via": "arg"},
