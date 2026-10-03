@@ -129,7 +129,7 @@ class Chat:
             return
         tools = agentmod.Tools(self.root, approve=self.approve, auto_edit=self.auto_edit, allow_shell=self.allow_shell, read_only=self.plan)
         try:
-            res = agentmod.run(prov, text, self.root, tools, session=self.sid, say=lambda m: self.note(_c("2", m)))
+            res = agentmod.run(prov, text, self.root, tools, session=self.sid, say=lambda m: self.note(_c("2", m)), skills=True)
         except KeyboardInterrupt:
             self.say("\nStopped.")
             return
