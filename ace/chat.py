@@ -1,0 +1,130 @@
+"""Interactive terminal chat for Ace: talk to a model that can work on the files in the current folder."""
+import os
+import sys
+
+from . import __version__
+from . import agent as agentmod
+from . import config as cfgmod
+from . import providers, runner
+
+HELP = """Type a task and press Enter. Commands:
+  /model            list providers, /model NAME switches
+  /yes-edits        stop asking before file edits and writes   (/ask turns questions back on)
+  /yes-shell        stop asking before shell commands
+  /sessions         list saved sessions, /resume ID continues one, /new starts fresh
+  /help  /exit      (Ctrl-C stops a running task)"""
+
+
+def _c(code, s):
+    return "\033[%sm%s\033[0m" % (code, s) if sys.stdout.isatty() and not os.environ.get("NO_COLOR") else s
+
+
+class Chat:
+    def __init__(self, root, provider_name=None, inp=input, out=None, err=None):
+        self.root = root
+        self.cfg = cfgmod.load(root)
+        self.pname = provider_name or self.cfg.get("default_provider", "mock")
+        self.inp, self.out, self.err = inp, out or sys.stdout, err or sys.stderr
+        self.auto_edit = self.allow_shell = False
+        self.sid = None
+
+    def say(self, s=""):
+        print(s, file=self.out)
+
+    def note(self, s):
+        print(s, file=self.err)
+
+    def approve(self, kind, detail):
+        label = {"write": "write a file", "edit": "edit a file", "shell": "run a command"}.get(kind, kind)
+        self.note(_c("33", "\nAce wants to %s:" % label) + "\n" + detail)
+        try:
+            return self.inp("Allow? [y/N] ").strip().lower() in ("y", "yes")
+        except EOFError:
+            return False
+
+    def banner(self):
+        self.say(_c("1", "Ace %s" % __version__) + "  folder: %s  provider: %s" % (self.root, self.pname))
+        if self.cfg["providers"].get(self.pname, {}).get("type") == "echo":
+            self.note(_c("33", "This is the offline MOCK provider: it cannot use tools. Pick a real one with /model."))
+        self.say("Edits and commands ask first. /help for commands, /exit to leave.")
+
+    def command(self, line):
+        parts = line.split(None, 1)
+        cmd, arg = parts[0], (parts[1].strip() if len(parts) > 1 else "")
+        if cmd in ("/exit", "/quit"):
+            return False
+        if cmd == "/help":
+            self.say(HELP)
+        elif cmd == "/model":
+            if arg:
+                if arg not in self.cfg["providers"]:
+                    self.say("No provider named %s." % arg)
+                else:
+                    self.pname = arg
+                    self.say("Provider: %s" % arg)
+            else:
+                for n, c in self.cfg["providers"].items():
+                    self.say("%s %s  (%s%s)" % ("*" if n == self.pname else " ", n, c.get("type"), ", model " + c["model"] if c.get("model") else ""))
+        elif cmd == "/yes-edits":
+            self.auto_edit = True
+            self.say("Edits and writes will not ask. /ask to undo.")
+        elif cmd == "/yes-shell":
+            self.allow_shell = True
+            self.say("Commands will not ask. /ask to undo.")
+        elif cmd == "/ask":
+            self.auto_edit = self.allow_shell = False
+            self.say("Asking before edits and commands.")
+        elif cmd == "/sessions":
+            for sid, n, first in agentmod.list_sessions(self.root):
+                self.say("%s  %d events  %s" % (sid, n, first))
+        elif cmd == "/resume":
+            try:
+                agentmod.load_session(self.root, arg)
+                self.sid = arg
+                self.say("Resumed %s." % arg)
+            except agentmod.ToolError as e:
+                self.say(str(e))
+        elif cmd == "/new":
+            self.sid = None
+            self.say("Fresh session.")
+        else:
+            self.say("Unknown command. /help")
+        return True
+
+    def task(self, text):
+        try:
+            prov = runner.get_provider(self.cfg, self.pname)
+        except Exception as e:
+            self.say("error: %s" % e)
+            return
+        tools = agentmod.Tools(self.root, approve=self.approve, auto_edit=self.auto_edit, allow_shell=self.allow_shell)
+        try:
+            res = agentmod.run(prov, text, self.root, tools, session=self.sid, say=lambda m: self.note(_c("2", m)))
+        except KeyboardInterrupt:
+            self.say("\nStopped.")
+            return
+        except providers.ProviderError as e:
+            self.say("error: %s" % e)
+            return
+        self.sid = res["session"]
+        self.say(res["answer"] or "(stopped after %d steps without a final answer; type a follow-up to continue)" % res["steps"])
+
+    def loop(self):
+        self.banner()
+        while True:
+            try:
+                line = self.inp(_c("36", "ace> ")).strip()
+            except (EOFError, KeyboardInterrupt):
+                self.say()
+                return 0
+            if not line:
+                continue
+            if line.startswith("/"):
+                if not self.command(line):
+                    return 0
+            else:
+                self.task(line)
+
+
+def main(root=None, provider=None):
+    return Chat(root or cfgmod.root(), provider).loop()
