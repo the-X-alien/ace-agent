@@ -81,7 +81,7 @@ class OpenAICompatible(Provider):
                 raise ProviderError("environment variable %s is not set" % key_env)
             headers["Authorization"] = "Bearer " + key
         t0 = time.time()
-        d = _post(base + "/chat/completions", headers, {"model": model, "messages": [{"role": "user", "content": prompt}]}, timeout)
+        d = _post(base + "/chat/completions", headers, dict({"model": model, "messages": [{"role": "user", "content": prompt}]}, **({"max_tokens": int(self.cfg["max_tokens"])} if self.cfg.get("max_tokens") else {})), timeout)
         try:
             text = d["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError, TypeError):
