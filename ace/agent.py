@@ -255,7 +255,7 @@ def list_sessions(root):
     return out
 
 
-def build_prompt(events, keep_full=6, cap=1500):
+def build_prompt(events, keep_full=6, cap=1500, max_chars=None):
     """Flatten the transcript. Older tool results are shortened so the prompt does not grow without bound."""
     tool_idx = [i for i, e in enumerate(events) if e["role"] == "tool"]
     old = set(tool_idx[:-keep_full]) if len(tool_idx) > keep_full else set()
@@ -267,6 +267,20 @@ def build_prompt(events, keep_full=6, cap=1500):
         tag = {"user": "USER", "assistant": "ASSISTANT", "tool": "TOOL RESULT"}[e["role"]]
         parts.append("%s:\n%s" % (tag, t))
     parts.append("ASSISTANT:")
+    if max_chars:
+        # fit a context budget (set "context_chars" on a provider): keep the system text, the first task and the
+        # newest turns; drop the oldest middle turns and say so
+        head, body = parts[:2], parts[2:-1]
+        kept, used = [], sum(len(x) for x in head) + len("ASSISTANT:") + 80
+        for x in reversed(body):
+            if used + len(x) + 2 > max_chars and kept:
+                break
+            kept.append(x if used + len(x) + 2 <= max_chars else x[: max(200, max_chars - used - 2)])
+            used += len(kept[-1]) + 2
+        kept.reverse()
+        if len(kept) < len(body):
+            kept.insert(0, "[earlier turns dropped to fit the context budget]")
+        parts = head + kept + ["ASSISTANT:"]
     return "\n\n".join(parts)
 
 
@@ -289,7 +303,7 @@ def run(provider, task, root, tools, max_steps=12, session=None, say=None, timeo
     recent = []
     while steps < max_steps:
         steps += 1
-        reply = provider.complete(build_prompt(events), timeout=timeout)
+        reply = provider.complete(build_prompt(events, max_chars=(getattr(provider, "cfg", None) or {}).get("context_chars")), timeout=timeout)
         calls += 1
         text = reply.text if hasattr(reply, "text") else str(reply)
         add("assistant", text)
