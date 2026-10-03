@@ -31,3 +31,21 @@ Built (small versions, own code): file list/read/search/write/edit and shell too
 Not built (examples named in the Doc): git-native auto-commit and undo (Aider), Docker sandboxes (OpenHands and others), memory graphs and side-agents (jcode), MCP servers, LSP, sub-agents and parallel worktrees, plugins, themes, native tool calling, repo maps, IDE integrations. The shell runs with permission prompts, not OS isolation.
 
 No catalogued project's code has been copied. OmniRoute (MIT) was only read for ideas.
+
+## OpenCode terminal UI: element-by-element (compared with OpenCode 1.18.34 run in a pty and screenshotted)
+
+Ace's UI is its own code, made to look similar. Checked only in a Linux pty with a scripted fake model, and on a Windows CI runner by unit tests (no person has used it in a real Windows console).
+
+| OpenCode element | Ace |
+|---|---|
+| Centered block logo on the home screen | Yes (ACE logo) |
+| Dark prompt panel with blue left bar and "Build · model" line | Yes |
+| Slash-command popup with highlighted selected row | Yes, 9 commands (/help /model /sessions /resume /new /yes-edits /yes-shell /ask /exit) vs OpenCode's longer list (/agents /connect /diff /init /mcps and more, not built) |
+| Ctrl+P commands palette with search and esc | Yes, but one flat list (no Suggested/System sections, no "Switch theme" and similar entries) |
+| "tab agents / ctrl+p commands" hint under prompt | Partly: Ace shows "/ commands, ctrl+p palette"; Tab does not switch agents |
+| User message panels, dim tool lines | Yes |
+| Right sidebar with session info (110+ columns) | Yes, simplified |
+| Footer with path and version | Yes |
+| Markdown rendering (headings, bold, code fences) | Basic (headings, bold, inline code, bullets, fences), no syntax highlighting, no tables |
+| Diff view for edits | Only +/- colouring of diff code blocks the model writes; no real file diff viewer |
+| Session list/switcher UI, themes, light mode, mouse support, agent (Tab) switching, plugins, MCP view, status view | Not built |
