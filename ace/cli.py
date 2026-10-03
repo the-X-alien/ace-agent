@@ -9,7 +9,7 @@ import urllib.request
 
 from . import __version__
 from . import config as cfgmod
-from . import connectors, providers, report, runner, skills as sk
+from . import connectors, providers, report, runner, update as upd, skills as sk
 from .board import serve
 
 
@@ -184,9 +184,20 @@ def cmd_connectors(a):
 
 def cmd_uninstall(a):
     print("Ace stores nothing outside your projects' .ace folders. To remove it:")
-    print("  pipx uninstall ace-agent        (or: python -m pip uninstall ace-agent)")
+    print("  Windows:       $env:ACE_UNINSTALL=\"1\"; irm https://raw.githubusercontent.com/the-X-alien/ace-agent/main/scripts/install.ps1 | iex")
+    print("  macOS/Linux:   curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/main/scripts/install.sh | ACE_UNINSTALL=1 sh")
     print("To remove a project's local data, delete its .ace folder.")
     return 0
+
+
+def cmd_update(a):
+    if a.auto:
+        upd.set_auto(a.auto)
+        print({"on": "Automatic updates: on. Ace installs new releases when you run a command, and tells you.",
+               "notify": "Update notices only (default). Run ace-agent update to install.",
+               "off": "Automatic update checks: off."}[a.auto])
+        return 0
+    return upd.cmd_update(check_only=a.check)
 
 
 def build():
@@ -200,6 +211,9 @@ def build():
         return s
     add("init", cmd_init, "create .ace/ with a starter config")
     add("doctor", cmd_doctor, "show versions, providers and skills")
+    s = add("update", cmd_update, "check for and install the latest Ace release")
+    s.add_argument("--check", action="store_true", help="only say whether a newer version exists")
+    s.add_argument("--auto", choices=["on", "notify", "off"], help="on: install new releases automatically; notify: just tell me (default); off: never check")
     add("skills", cmd_skills, "list skills")
     s = add("pick", cmd_pick, "show which skills a prompt would select")
     s.add_argument("prompt")
@@ -241,6 +255,7 @@ def main(argv=None):
     if not getattr(a, "fn", None):
         p.print_help()
         return 0
+    upd.startup_check(getattr(a, "cmd", None))
     try:
         return a.fn(a)
     except providers.ProviderError as e:
