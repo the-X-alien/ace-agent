@@ -134,3 +134,14 @@ class AgentTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ParseTolerance(unittest.TestCase):
+    def test_raw_file_block(self):
+        from ace import agent
+        self.assertEqual(agent.parse_tool("```ace-write a.html\n<h1>x</h1>\n```"), ("write_file", {"path": "a.html", "content": "<h1>x</h1>\n"}))
+
+    def test_triple_quoted_and_flat_args(self):
+        from ace import agent
+        t = agent.parse_tool('```ace-tool\n{"tool":"write_file","path":"a","content":"""\n<p>"q"</p>\n"""}\n```')
+        self.assertEqual(t, ("write_file", {"path": "a", "content": '<p>"q"</p>'}))
