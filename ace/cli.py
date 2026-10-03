@@ -213,6 +213,21 @@ def cmd_agent(a):
     return 0 if res["stopped"] == "done" else 1
 
 
+def cmd_ping(a):
+    """Send one tiny real request to a provider and say whether it answered. Nothing is stored."""
+    r = cfgmod.root()
+    prov = _provider(a, cfgmod.load(r))
+    try:
+        rep = prov.complete("Reply with the single word: pong", timeout=a.timeout)
+    except providers.ProviderError as e:
+        print("FAILED: %s" % e)
+        return 1
+    mock = getattr(rep, "mock", False)
+    print("%s: got %d characters back in %.1fs%s" % ("MOCK (offline test provider, proves nothing)" if mock else "OK", len(rep.text), rep.seconds,
+                                                  "" if mock else ". Reply starts: %r" % rep.text.strip()[:60]))
+    return 0
+
+
 def cmd_site(a):
     from . import site
     r = cfgmod.root()
@@ -254,6 +269,9 @@ def build():
         return s
     add("init", cmd_init, "create .ace/ with a starter config")
     add("doctor", cmd_doctor, "show versions, providers and skills")
+    s = add("ping", cmd_ping, "send one tiny real request to a provider to check it answers")
+    s.add_argument("--provider")
+    s.add_argument("--timeout", type=int, default=60)
     s = add("site", cmd_site, "build a one-page website from one prompt (small steps, works with small models)")
     s.add_argument("prompt")
     s.add_argument("--provider")
