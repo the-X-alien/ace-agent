@@ -110,7 +110,7 @@ class AgentTests(unittest.TestCase):
     def test_max_steps(self):
         p = Script([block("list_dir")] * 5)
         res = ag.run(p, "loop", self.d, self.tools(), max_steps=3)
-        self.assertEqual((res["stopped"], res["steps"]), ("max_steps", 3))
+        self.assertEqual((res["stopped"], res["steps"]), ("loop", 3))
 
     def test_resume_session(self):
         p = Script(["first answer"])
@@ -145,3 +145,25 @@ class ParseTolerance(unittest.TestCase):
         from ace import agent
         t = agent.parse_tool('```ace-tool\n{"tool":"write_file","path":"a","content":"""\n<p>"q"</p>\n"""}\n```')
         self.assertEqual(t, ("write_file", {"path": "a", "content": '<p>"q"</p>'}))
+
+
+class LoopAndAssets(unittest.TestCase):
+    def test_missing_asset_reported_and_loop_stops(self):
+        import tempfile
+        from ace import agent
+
+        class Same:
+            def complete(self, prompt, timeout=0):
+                class R:
+                    text = '```ace-write index.html\n<html><head><title>t</title><link rel="stylesheet" href="styles.css"></head><body><h1>Hello there</h1></body></html>\n```'
+                return R()
+        with tempfile.TemporaryDirectory() as d:
+            tools = agent.Tools(d, approve=lambda k, x: True, auto_edit=True)
+            res = agent.run(Same(), "make a page", d, tools, max_steps=8)
+            self.assertEqual(res["stopped"], "loop")
+            self.assertLess(res["steps"], 8)
+            out = tools.call("write_file", {"path": "x.html", "content": '<link href="a.css"><img src="https://e.com/i.png"><script src="app.js"></script>'})
+            self.assertIn("MISSING FILES", out)
+            self.assertIn("a.css", out)
+            self.assertIn("app.js", out)
+            self.assertNotIn("e.com", out)
