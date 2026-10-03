@@ -32,9 +32,11 @@ Project data lives in each project's `.ace/` folder.
 
 ## Agent mode (new, early)
 
+Run `ace-agent` with no arguments in a terminal for a line-based chat (not a full-screen interface yet): `/model`, `/sessions`, `/resume`, `/yes-edits`, `/help`.
+
     ace-agent agent "fix the failing test in tests/test_math.py" --provider openai
 
-The model can list and read files, search, write and edit files, and run shell commands, only inside the project folder. Every write, edit and command asks you first; `--auto-edit` and `--allow-shell` skip the question. Without a terminal to ask in, edits and commands are refused. Sessions are saved in `.ace/sessions/` and resume with `--resume <id>`; `ace-agent sessions` lists them. Tool calls travel as plain text, so it works with any provider Ace supports. The default `mock` provider cannot use tools: pick a real one. Tested with scripted fake models on Linux and the Windows runner; not yet measured against real models, and not yet compared with other agents. No claims about speed or quality.
+The model can list and read files, search, write and edit files, and run shell commands, only inside the project folder. Every write, edit and command asks you first. This is permission prompting, not a sandbox: file tools are confined to the project folder, but an approved shell command runs with your user rights and can reach anything you can, so read commands before you say yes; `--auto-edit` and `--allow-shell` skip the question. Without a terminal to ask in, edits and commands are refused. Sessions are saved in `.ace/sessions/` and resume with `--resume <id>`; `ace-agent sessions` lists them. Tool calls travel as plain text in a fixed format, so any provider can in principle be used, but the model has to follow that format; only scripted fake models have been tested so far. The default `mock` provider cannot use tools: pick a real one. Tested with scripted fake models on Linux and the Windows runner; not yet measured against real models, and not yet compared with other agents. No claims about speed or quality.
 
 ## Quick start
 
