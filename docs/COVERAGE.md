@@ -49,3 +49,18 @@ Ace's UI is its own code, made to look similar. Checked only in a Linux pty with
 | Markdown rendering (headings, bold, code fences) | Basic (headings, bold, inline code, bullets, fences), no syntax highlighting, no tables |
 | Diff view for edits | Only +/- colouring of diff code blocks the model writes; no real file diff viewer |
 | Session list/switcher UI, themes, light mode, mouse support, agent (Tab) switching, plugins, MCP view, status view | Not built |
+
+## Providers: what has actually been tested
+
+Test levels: **real** = a real model answered through Ace; **stub** = request shape and parsing checked against a local fake server (proves nothing about the hosted service); **config only** = entry exists, never run.
+
+| Provider entry | Level |
+|---|---|
+| openai-compatible against a local llama.cpp server (Qwen2.5-Coder-1.5B) | real (Linux, my test machine; `site`, `agent` and `ping` all ran) |
+| openai-compatible, generic (headers, path, max_tokens, errors) | stub |
+| openai, openrouter, featherless, lmstudio, ollama | config only (same code path as the stub-tested adapter; never called) |
+| anthropic | stub (headers, path, response parsing) |
+| claude-cli, codex-cli | stub with a fake command (argument and stdin modes, failure); the real CLIs were never run |
+| mock (echo) | offline, canned output, proves nothing |
+
+`ace-agent ping --provider NAME` sends one real tiny request, so you can check any provider you configure yourself. Hosted providers have their own terms and age rules; read them before creating an account.
