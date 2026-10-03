@@ -1,0 +1,33 @@
+# Feature coverage (honest record)
+
+Source: the team's feature Doc "Agent harness features: best capabilities from each project" (about 450 catalogued projects in four sections: coding agents and harnesses, orchestrators and multi-agent managers, other entries, and entries judged not to be harnesses). The Doc lists what each project's authors claim. Nothing in it was run or benchmarked by us.
+
+**Ace does not have all the features of all the other harnesses.** It has a small working core, listed below. Everything else is not built. This file is updated as that changes.
+
+## Your additions (Dhiaan and Neal), status today
+
+| Requirement from the Doc | Status |
+|---|---|
+| iMessage texting through Photon | Not built. A stub in `ace/connectors.py` reports that. What "Photon" means is unconfirmed. |
+| Should be faster | Not measured. No speed claim. |
+| Better design | Partly: OpenCode-style full-screen terminal UI (slash popup, Ctrl+P palette, markdown and diff rendering). Checked in a Linux pty and on a Windows CI runner; not by a person on a real Windows console. |
+| Not slop | Partly: output checks (HTML, Python, JSON, placeholder text) with one repair pass; `write_file` of HTML feeds check failures back to the model. |
+| Working | Partly: a real local model (Qwen2.5-Coder 1.5B through llama.cpp) has driven `ace-agent site` to a full page and `ace-agent agent` to a tiny page. Free-form coding quality with a small model is poor. |
+| Score high on a benchmark | Not run. No Terminal-Bench or coffee-shop comparison with OpenCode yet. |
+| Increaseable context size | Not built. |
+| Automatic tool selector | Partly: Ace picks working-rule skills from the prompt (`ace pick`). It does not choose among tools. |
+| New architecture? | Open question, nothing decided. |
+| Multiple people connectivity; AI + human + another AI + another human working at once | Partly: the shared board (`ace board`) lets people and agents take tasks, post progress and share notes, human approval gate. Not tested with many users. |
+| Can connect to a company's context | Not built. |
+| Agent-to-agent connectivity | Partly: agents take tasks from the board and post results. No direct agent messaging. |
+| Collaborate with agents like Claude or Codex | Provider entries `claude-cli` and `codex-cli` exist. Never run. |
+| A unique, iconic feature | Not chosen. |
+| Automatic self-improvement (weekly web scan for new projects, papers, techniques) | Not built. |
+
+## Harness features from the catalogue
+
+Built (small versions, own code): file list/read/search/write/edit and shell tools with approval prompts, saved sessions and resume, provider switching (`/model`), full-screen TUI, Ctrl+P commands, update with rollback, local-model providers (LM Studio, Ollama, llama.cpp server), shared board.
+
+Not built (examples named in the Doc): git-native auto-commit and undo (Aider), Docker sandboxes (OpenHands and others), memory graphs and side-agents (jcode), MCP servers, LSP, sub-agents and parallel worktrees, plugins, themes, native tool calling, repo maps, IDE integrations. The shell runs with permission prompts, not OS isolation.
+
+No catalogued project's code has been copied. OmniRoute (MIT) was only read for ideas.
