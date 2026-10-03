@@ -20,9 +20,11 @@ if (-not $py) { Write-Error "Python 3.9 or newer is required. Install it from ht
 if ($source -like "git+*" -and -not (Get-Command git -ErrorAction SilentlyContinue)) {
   Write-Error "git is required to install from the private repository. Install Git for Windows (https://git-scm.com/download/win), sign in to GitHub, and run this again."
 }
-if (Get-Command pipx -ErrorAction SilentlyContinue) {
+if ((Get-Command pipx -ErrorAction SilentlyContinue) -and -not $env:ACE_NO_PIPX) {
   Write-Host "Installing ace-agent with pipx from $source"
   pipx install --force $source
+  if ($LASTEXITCODE -ne 0) { Write-Error "pipx could not install from $source. For a private repo, sign in with git first and check you have access." }
+  Write-Host "If 'ace' is not found, run: pipx ensurepath  and open a new terminal."
 } else {
   $home_dir = if ($env:ACE_HOME) { $env:ACE_HOME } else { Join-Path $env:LOCALAPPDATA "ace-agent" }
   Write-Host "pipx not found, using a private virtual environment at $home_dir"
