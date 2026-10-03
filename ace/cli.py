@@ -294,9 +294,9 @@ def main(argv=None):
     a = p.parse_args(argv)
     if not getattr(a, "fn", None):
         if sys.stdin.isatty() and sys.stdout.isatty():
-            from . import chat
-            upd.startup_check("chat")
-            return chat.main()
+            from . import tui
+            upd.startup_check("tui")
+            return tui.main()
         p.print_help()
         return 0
     upd.startup_check(getattr(a, "cmd", None))
