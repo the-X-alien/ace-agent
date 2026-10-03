@@ -6,7 +6,9 @@ Types:
   cli                any command-line agent that takes a prompt (for example a coding agent CLI)
   echo               offline test provider. It returns canned text and is labelled MOCK everywhere.
 """
+import http.client
 import json
+import socket
 import os
 import shutil
 import subprocess
@@ -34,12 +36,21 @@ def _post(url, headers, payload, timeout):
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8"))
+            d = json.loads(r.read().decode("utf-8"))
+        if not isinstance(d, dict):
+            raise ProviderError("unexpected response from %s: not a JSON object" % url)
+        return d
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")[:300]
         raise ProviderError("HTTP %s from %s: %s" % (e.code, url, body))
     except urllib.error.URLError as e:
         raise ProviderError("cannot reach %s: %s" % (url, e.reason))
+    except (TimeoutError, socket.timeout):
+        raise ProviderError("request to %s timed out after %ss" % (url, timeout))
+    except (ConnectionError, http.client.HTTPException, OSError) as e:
+        raise ProviderError("connection to %s failed: %s" % (url, e))
+    except ValueError:
+        raise ProviderError("response from %s was not valid JSON" % url)
 
 
 class Provider:
