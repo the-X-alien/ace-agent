@@ -60,12 +60,15 @@ What is and is not covered from the team's feature list: [docs/COVERAGE.md](docs
 
 ## Use a free local model (no account, no key)
 
-1. Install [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com) and download a coding model that fits your RAM (a 7B coder model needs roughly 8 GB; smaller models write worse code).
-2. Start its local server (LM Studio: Developer tab, Start Server; Ollama runs one by itself).
-3. In your project folder run `ace-agent init`, then in `ace-agent` type `/model lmstudio <model-name>` (or `/model ollama <model-name>`), or edit `.ace/config.json`.
-4. Try `ace-agent site "your idea" --provider lmstudio` or just `ace-agent`.
+Ace talks to any local server that speaks the OpenAI chat format. Pick one, and check its terms yourself first:
 
-Any llama.cpp `llama-server` also works: add an `openai-compatible` provider with `base_url` `http://localhost:8080/v1`. Small models (about 1.5B) were tried and write poor pages; no larger model has been tested through Ace yet.
+- **llama.cpp `llama-server`** (open source, MIT licence, no account, no terms to accept). Download a release from https://github.com/ggml-org/llama.cpp/releases and a `.gguf` model file (for example a Qwen2.5-Coder GGUF from Hugging Face; downloading needs no account, but read the model's own licence). Run `llama-server -m model.gguf -c 4096 --port 8080`. This is what Ace's real-model tests used, with a 1.5B model.
+- **Ollama**: its Terms of Service say you must be at least 18 (https://ollama.com/terms), so check that before using it.
+- **LM Studio**: its terms are at https://lmstudio.ai/app-terms; we did not verify an age rule, so read them first.
+
+Then add a provider in `.ace/config.json`, for example `"lm": {"type": "openai-compatible", "base_url": "http://localhost:8080/v1", "model": "local", "max_tokens": 1500}`, and run `ace-agent site "your idea" --provider lm` or `ace-agent` and type `/model lm`. Defaults for LM Studio (`localhost:1234`) and Ollama (`localhost:11434`) are already in the provider list.
+
+A 1.5B model was the only one tried and it writes poor pages. Larger models have not been tested through Ace yet. Bigger models need more RAM (a 7B coder model needs roughly 6 to 8 GB).
 
 ## Quick start
 
