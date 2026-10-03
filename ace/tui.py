@@ -149,30 +149,33 @@ class App:
         return out
 
     def _inputbox(self, width):
-        """OpenCode-style prompt: dark panel, accent bar on the left, model line underneath."""
+        """Prompt panel in the same layout as OpenCode's: blue left bar, padded rows, mode and model line."""
         pc = self.chat.cfg["providers"].get(self.chat.pname, {})
         mode = "Build" if not (self.chat.auto_edit or self.chat.allow_shell) else "Build (auto)"
-        txt = self.buf[-(width - 6):]
+        pad = lambda: [("pbar", "\u2503"), ("panel", " " * (width - 1))]
         if self.buf:
-            mid = [("pbar", " \u2503 "), ("panel", (txt + "\u2588").ljust(width - 3))]
+            body = (self.buf[-(width - 6):] + "\u2588").ljust(width - 4)
+            mid = [("pbar", "\u2503"), ("panel", "   " + body)]
         else:
             ph = "Ask anything... \"add a contact form to index.html\""
-            mid = [("pbar", " \u2503 "), ("cursor", "\u2588"), ("pdim", ph[: width - 5].ljust(width - 4))]
-        info = [("pbar", " \u2503 "), ("pmode", mode), ("pdim", "  %s" % (pc.get("model") or self.chat.pname)),
-                ("pdim", ("  " + self.chat.pname if pc.get("model") else "")), ]
-        used = 3 + len(mode) + 2 + len(pc.get("model") or self.chat.pname) + (2 + len(self.chat.pname) if pc.get("model") else 0)
-        info.append(("panel", " " * max(0, width - used)))
-        top = [("pbar", " \u2503 "), ("panel", " " * (width - 3))]
-        return [top, mid, info]
+            mid = [("pbar", "\u2503"), ("panel", "   "), ("cursor", "\u2588"), ("pdim", ph[: width - 6].ljust(width - 5))]
+        model = pc.get("model") or ""
+        used = 3 + len(mode) + 3 + len(model) + (1 + len(self.chat.pname) if model else 0)
+        if not model:
+            used = 3 + len(mode) + 3 + len(self.chat.pname)
+        info = [("pbar", "\u2503"), ("panel", "   "), ("pmode", mode), ("pdim", " \u00b7 "),
+                ("panel", model or self.chat.pname), ("pdim", (" " + self.chat.pname) if model else ""),
+                ("panel", " " * max(0, width - used - 1))]
+        return [pad(), mid, pad(), info, pad()]
 
     def _splash(self, width, height):
         rows = []
         logo = ["\u2588\u2580\u2580\u2588 \u2588\u2580\u2580\u2580 \u2588\u2580\u2580\u2580",
                 "\u2588\u2580\u2580\u2588 \u2588    \u2588\u2580\u2580 ",
                 "\u2580  \u2580 \u2580\u2580\u2580\u2580 \u2580\u2580\u2580\u2580"]
-        bw = min(width - 4, 72)
+        bw = min(width - 4, 75)
         box = self._inputbox(bw)
-        content = len(logo) + 2 + len(box) + 3
+        content = len(logo) + 2 + len(box) + 4
         top = max(0, (height - content) // 2)
         rows += [[("", "")]] * top
         for l in logo:
@@ -182,10 +185,9 @@ class App:
         lm = (width - bw) // 2
         for r in box:
             rows.append([("", " " * lm)] + r)
-        rows.append([("", "")])
+        rows.append([("", " " * lm), ("dim", "/help commands   ctrl+c quit".rjust(bw))])
         if self.chat.cfg["providers"].get(self.chat.pname, {}).get("type") == "echo":
             rows.append([("warn", "Offline MOCK provider: it cannot use tools. Use /model to pick a real one.".center(width))])
-        rows.append([("dim", "/help for commands  \u00b7  /model to pick a provider  \u00b7  Ctrl-C to quit".center(width))])
         return (rows + [[("", "")]] * height)[:height]
 
     def _sidebar(self, height):
@@ -220,7 +222,7 @@ class App:
         mw = cols - self.SIDEBAR - 1 if side else cols
         flat = self._flat(mw)
         # footer (1) + optional approval bar (1); prompt box (3) lives in the body on the home screen
-        box_h = 0 if not started else 3
+        box_h = 0 if not started else 5
         body_h = rows_n - 1 - 1 - box_h
         if not started:
             self.scroll = 0
@@ -252,7 +254,7 @@ class App:
             mid = [("", "")]
         out = body + [mid]
         if started:
-            out += [self._pad(r, mw if False else cols) for r in self._inputbox(cols - 2)]
+            out += [self._pad(r, cols) for r in self._inputbox(cols)]
         left = " " + os.path.abspath(self.chat.root)
         right = "ace %s " % __version__
         gap = max(1, cols - len(left) - len(right))
