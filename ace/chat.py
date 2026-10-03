@@ -12,6 +12,8 @@ HELP = """Type a task and press Enter. Commands:
   /yes-edits        stop asking before file edits and writes   (/ask turns questions back on)
   /yes-shell        stop asking before shell commands
   /sessions         list saved sessions, /resume ID continues one, /new starts fresh
+  /site IDEA        build index.html from one idea in small steps (needs a real provider)
+  /ping             check that the current provider answers
   /help  /exit      (Ctrl-C stops a running task)"""
 
 
@@ -77,6 +79,23 @@ class Chat:
         elif cmd == "/ask":
             self.auto_edit = self.allow_shell = False
             self.say("Asking before edits and commands.")
+        elif cmd == "/ping":
+            try:
+                rep = runner.get_provider(self.cfg, self.pname).complete("Reply with the single word: pong", timeout=60)
+                self.say("%s answered in %.1fs%s" % (self.pname, rep.seconds, " (MOCK, proves nothing)" if getattr(rep, "mock", False) else ": " + rep.text.strip()[:60]))
+            except providers.ProviderError as e:
+                self.say("FAILED: %s" % e)
+        elif cmd == "/site":
+            from . import site
+            if not arg:
+                self.say("Usage: /site a one-line description of the site")
+            elif self.cfg["providers"].get(self.pname, {}).get("type") == "echo":
+                self.say("The mock provider cannot write a site. Pick a real one with /model.")
+            else:
+                try:
+                    site.run(runner.get_provider(self.cfg, self.pname), arg, os.path.join(self.root, "index.html"), say=self.say)
+                except (providers.ProviderError, RuntimeError) as e:
+                    self.say("Could not build the site: %s" % e)
         elif cmd == "/sessions":
             for sid, n, first in agentmod.list_sessions(self.root):
                 self.say("%s  %d events  %s" % (sid, n, first))
