@@ -185,3 +185,17 @@ class ContextBudget(unittest.TestCase):
         self.assertNotIn("a0 ", small)
         self.assertIn("earlier turns dropped", small)
         self.assertEqual(agent.build_prompt(ev, max_chars=None), full)
+
+
+class PlanMode(unittest.TestCase):
+    def test_read_only_blocks_writes_allows_reads(self):
+        import tempfile
+        from ace import agent
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "a.txt"), "w").write("x")
+            t = agent.Tools(d, approve=lambda k, x: True, auto_edit=True, allow_shell=True, read_only=True)
+            self.assertIn("a.txt", t.call("list_dir", {"path": "."}))
+            for name, args in (("write_file", {"path": "b", "content": "y"}), ("edit_file", {"path": "a.txt", "old": "x", "new": "z"}), ("run_shell", {"command": "echo hi"})):
+                with self.assertRaises(agent.ToolError):
+                    t.call(name, args)
+            self.assertFalse(os.path.exists(os.path.join(d, "b")))
