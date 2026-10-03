@@ -47,6 +47,47 @@ class TuiTest(unittest.TestCase):
             a.add("hi", "user")
             self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()), w)
 
+    def test_slash_popup_filters_and_runs(self):
+        a = self.app((100, 30))
+        a.key("/")
+        txt = self.text(a)
+        self.assertIn("/model", txt)
+        self.assertIn("Exit the app", txt)
+        a.key("m")
+        a.key("o")
+        self.assertEqual([c[0] for c in a.popup_items()], ["/model"])
+        a.key("tab")
+        self.assertEqual(a.buf, "/model ")
+        b = self.app((100, 30))
+        for k in list("/ex") + ["enter"]:
+            b.key(k)
+        self.assertTrue(b.quit)
+
+    def test_palette_open_search_run_escape(self):
+        a = self.app((100, 30))
+        a.key("ctrl-p")
+        self.assertIn("Commands", self.text(a))
+        for k in "sess":
+            a.key(k)
+        self.assertEqual(a.popup_items()[0][0], "/sessions")
+        a.key("enter")
+        self.assertIsNone(a.palette)
+        c = self.app((100, 30))
+        c.key("ctrl-p")
+        c.key("esc")
+        self.assertIsNone(c.palette)
+        self.assertFalse(c.quit)
+
+    def test_overlays_never_overflow(self):
+        for w, h in ((24, 9), (40, 12), (100, 30)):
+            a = tui.App(self.d, size=lambda w=w, h=h: (w, h))
+            a.key("/")
+            self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()))
+            a.buf = ""
+            a.key("ctrl-p")
+            self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()))
+            self.assertEqual(len(a.render()), max(h, 9))
+
     def test_typing_and_command(self):
         a = self.app()
         for k in typed("/help"):
