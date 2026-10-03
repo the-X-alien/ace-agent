@@ -14,7 +14,7 @@ Source: the team's feature Doc "Agent harness features: best capabilities from e
 | Not slop | Partly: output checks (HTML, Python, JSON, placeholder text) with one repair pass; `write_file` of HTML feeds check failures back to the model. |
 | Working | Partly: a real local model (Qwen2.5-Coder 1.5B through llama.cpp) has driven `ace-agent site` to a full page and `ace-agent agent` to a tiny page. Free-form coding quality with a small model is poor. |
 | Score high on a benchmark | Not run. No Terminal-Bench or coffee-shop comparison with OpenCode yet. |
-| Increaseable context size | Not built. |
+| Increaseable context size | Partly: set `"context_chars"` on a provider in `.ace/config.json` (and `max_tokens`) and the agent drops the oldest turns to fit; it counts characters, not tokens, and does not detect the model's real window. Unit-tested only. |
 | Automatic tool selector | Partly: Ace picks working-rule skills from the prompt (`ace pick`). It does not choose among tools. |
 | New architecture? | Open question, nothing decided. |
 | Multiple people connectivity; AI + human + another AI + another human working at once | Partly: the shared board (`ace board`) lets people and agents take tasks, post progress and share notes, human approval gate. Not tested with many users. |
