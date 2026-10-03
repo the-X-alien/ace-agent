@@ -12,25 +12,25 @@ Status: **v0.1.1, early.** Everything below says what exists today. Speed, cost 
 
 Needs Python 3.9 or newer. No other dependencies.
 
-The repository is private for now, so install from a clone. You need git signed in to GitHub with access to this repo (for example `gh auth login`, or a credential manager), plus Python 3.9 or newer.
+One line (pinned to v0.1.2; needs Python 3.9+ and git):
 
 macOS and Linux:
 
-    git clone --branch v0.1.1 https://github.com/the-X-alien/ace-agent.git
-    cd ace-agent
-    sh scripts/install.sh
+    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.sh | sh
 
 Windows (PowerShell):
 
-    git clone --branch v0.1.1 https://github.com/the-X-alien/ace-agent.git
-    cd ace-agent
-    powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.2/scripts/install.ps1 | iex
 
-Or with pipx on any system (uses your git login):
+Or with pipx on any system:
 
-    pipx install git+https://github.com/the-X-alien/ace-agent@v0.1.1
+    pipx install git+https://github.com/the-X-alien/ace-agent@v0.1.2
 
-The script installs into an isolated environment, is safe to run again, and never asks for a key. Read it first if you like: scripts/install.sh and scripts/install.ps1. Tested so far: the Linux script, from a local checkout. Not yet tested: macOS, Windows, and installing from GitHub itself. If v0.1.1 does not resolve, use `--branch main`.
+Then run `ace --version` and `ace doctor`. If `ace` is not found, open a new terminal, or run `pipx ensurepath`, or add the folder the installer prints to your PATH.
+
+Piping a script into a shell runs it unread, so you can instead read it first: scripts/install.sh and scripts/install.ps1. The installer puts Ace in an isolated environment, is safe to run again, and never asks for a key.
+
+Tested so far: the Windows installer on a GitHub Windows runner (pipx path and plain venv path, `ace --version`, `ace doctor`, unit tests), and the Linux installer. Not yet tested: macOS, and the one-line URLs above end to end. See the Actions tab for the runs.
 
 Remove it: `pipx uninstall ace-agent` (or `python -m pip uninstall ace-agent`). Project data lives in each project's `.ace/` folder.
 
