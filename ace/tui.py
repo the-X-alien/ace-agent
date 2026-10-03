@@ -24,6 +24,8 @@ CSI = "\033["
 COMMANDS = [
     ("/help", "Help", False),
     ("/model", "Switch provider / model", True),
+    ("/site", "Build index.html from one idea", True),
+    ("/ping", "Check the provider answers", False),
     ("/sessions", "List saved sessions", False),
     ("/resume", "Resume a saved session", True),
     ("/new", "Start a fresh session", False),
@@ -372,7 +374,7 @@ class App:
                     [("", " " * lm), ("pop", (" " + (self.palette["q"] or "") + "\u2588" if self.palette["q"] else " Search").ljust(w))],
                     [("", " " * lm), ("pop", " " * w)]]
             self.palette["sel"] = max(0, min(self.palette["sel"], len(items) - 1))
-            for i, (c, d, _) in enumerate(items[:10]):
+            for i, (c, d, _) in enumerate(items[:12]):
                 rows.append([("", " " * lm), ("sel" if i == self.palette["sel"] else "pop", (" %s  %s" % (c.ljust(11), d)).ljust(w))])
             if not items:
                 rows.append([("", " " * lm), ("pop", " no matching command".ljust(w))])
@@ -391,7 +393,7 @@ class App:
         r0 = out[box_top]
         lm = len(r0[0][1]) if r0 and r0[0][0] == "" and not r0[0][1].strip() else 0
         w = sum(len(t) for _, t in r0) - lm
-        shown = items[:10]
+        shown = items[:12]
         for i, (c, d, _) in enumerate(shown):
             row = box_top - len(shown) + i
             if row < 1:
