@@ -6,28 +6,28 @@ Ace is a free, open-source harness layer for the AI providers you already use. Y
 2. **Output checks.** It checks the reply (markup, syntax, placeholder text), and asks the model to repair hard failures once.
 3. **One table for humans and agents.** A shared board where people and agents take tasks, post live progress, share context, and a human approves before anything is marked done.
 
-Status: **v0.1.4, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
+Status: **v0.1.5, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
 
-## Install (v0.1.4)
+## Install (v0.1.5)
 
 Needs Python 3.9 or newer (on Windows the installer adds Python 3.12 for you with winget if it is missing). No git, no pipx, no admin rights.
 
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.5/scripts/install.ps1 | iex
 ```
 
 **macOS and Linux (Terminal):**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.5/scripts/install.sh | sh
 ```
 
 Then check it and start it in your project folder:
 
 ```sh
-ace-agent --version   # prints 0.1.4
+ace-agent --version   # prints 0.1.5
 ace-agent             # full-screen terminal UI
 ```
 
