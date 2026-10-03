@@ -42,7 +42,7 @@ Ace's UI is its own code, made to look similar. Checked only in a Linux pty with
 | Dark prompt panel with blue left bar and "Build · model" line | Yes |
 | Slash-command popup with highlighted selected row | Yes, 9 commands (/help /model /sessions /resume /new /yes-edits /yes-shell /ask /exit) vs OpenCode's longer list (/agents /connect /diff /init /mcps and more, not built) |
 | Ctrl+P commands palette with search and esc | Yes, but one flat list (no Suggested/System sections, no "Switch theme" and similar entries) |
-| "tab agents / ctrl+p commands" hint under prompt | Partly: Ace shows "/ commands, ctrl+p palette"; Tab does not switch agents |
+| "tab agents / ctrl+p commands" hint under prompt | Partly: Tab toggles two modes, Build and Plan (Plan = read-only tools, `/plan` `/build`); OpenCode's other agents are not built |
 | User message panels, dim tool lines | Yes |
 | Right sidebar with session info (110+ columns) | Yes, simplified |
 | Footer with path and version | Yes |
