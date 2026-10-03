@@ -5,8 +5,10 @@ shell commands appear as a prompt in the status area (y / n). The agent runs in 
 background thread so the screen stays responsive; Ctrl-C stops a running task at the
 next step, Ctrl-C when idle quits.
 """
+import json
 import os
 import queue
+import re
 import shutil
 import sys
 import textwrap
@@ -17,6 +19,27 @@ from . import __version__
 from .chat import Chat
 
 CSI = "\033["
+
+
+STEP = re.compile(r"^step (\d+): (\w+) (\{.*\})$")
+LOGO = [
+    "   _    ___ ___ ",
+    "  /_\\  / __| __|",
+    " / _ \\| (__| _| ",
+    "/_/ \\_\\___|___|",
+]
+
+
+def pretty_step(line):
+    m = STEP.match(line)
+    if not m:
+        return None
+    try:
+        a = json.loads(m.group(3))
+    except ValueError:
+        return None
+    what = a.get("path") or a.get("command") or a.get("pattern") or ""
+    return "\u25cf %s  %s" % (m.group(2), what)
 
 
 class Sink:
@@ -32,7 +55,19 @@ class Sink:
         self.buf += s
         while "\n" in self.buf:
             line, self.buf = self.buf.split("\n", 1)
-            self.app.add(line, self.style)
+            nice = pretty_step(line)
+            if nice:
+                m = STEP.match(line)
+                try:
+                    tgt = json.loads(m.group(3)).get("path")
+                except ValueError:
+                    tgt = None
+                self.app.tool_note(m.group(2), tgt)
+                self.app.add(nice, "tool")
+            elif self.style == "" and line.strip() and not line.startswith(" "):
+                self.app.add("\u258c " + line, "ans")
+            else:
+                self.app.add(line, self.style)
         return len(s)
 
     def flush(self):
@@ -53,6 +88,7 @@ class App:
     def __init__(self, root, provider=None, keys=None, size=None):
         os.environ["NO_COLOR"] = "1"  # the transcript does its own styling
         self.lines = []  # (style, text)
+        self.files, self.nsteps = [], 0
         self.buf = ""
         self.scroll = 0
         self.cancel = threading.Event()
@@ -65,10 +101,8 @@ class App:
         self.size = size or (lambda: shutil.get_terminal_size((80, 24)))
         self.chat = Chat(root, provider, out=Sink(self), err=Sink(self, "dim"))
         self.chat.approve = self.approve
-        self.add("Ace %s  folder: %s" % (__version__, root), "bold")
         if self.chat.cfg["providers"].get(self.chat.pname, {}).get("type") == "echo":
             self.add("This is the offline MOCK provider: it cannot use tools. Use /model to pick a real one.", "warn")
-        self.add("Edits and commands ask first. Enter sends, /help lists commands, PgUp/PgDn scroll, Ctrl-C stops or quits.", "dim")
 
     def add(self, text, style=""):
         with self.lock:
@@ -77,9 +111,10 @@ class App:
     def approve(self, kind, detail):
         label = {"write": "write a file", "edit": "edit a file", "shell": "run a command"}.get(kind, kind)
         q = queue.Queue()
-        self.add("Ace wants to %s:" % label, "warn")
+        self.add("\u250c\u2500 Ace wants to %s " % label + "\u2500" * 20, "warn")
         for l in detail.split("\n"):
-            self.add("  " + l, "add" if l.startswith("+") else "del" if l.startswith("-") else "")
+            self.add("\u2502 " + l, "add" if l.startswith("+") else "del" if l.startswith("-") else "warn")
+        self.add("\u2514" + "\u2500" * 30, "warn")
         self.pending = (kind, detail, q)
         while True:
             try:
@@ -91,47 +126,174 @@ class App:
                     ok = False
                     break
         self.pending = None
-        self.add("  -> allowed" if ok else "  -> refused", "dim")
+        self.add("  allowed" if ok else "  refused", "ok" if ok else "del")
         return ok
 
     # ---- rendering -------------------------------------------------
-    def render(self):
-        cols, rows = self.size()
-        cols, rows = max(cols, 20), max(rows, 6)
-        body_h = rows - 3
-        header = " Ace %s | %s | %s%s " % (
-            __version__, self.chat.pname,
-            "edits+shell auto" if self.chat.auto_edit and self.chat.allow_shell else "auto-edit" if self.chat.auto_edit else "asks first",
-            " | working..." if self.running else "")
+    SIDEBAR = 34
+
+    def tool_note(self, name, target):
+        self.nsteps += 1
+        if name in ("write_file", "edit_file") and target and target not in self.files:
+            self.files.append(target)
+
+    def _flat(self, width):
         with self.lock:
             lines = list(self.lines)
-        flat = []
+        out = []
         for style, text in lines:
-            for w in wrap(text, cols):
-                flat.append((style, w))
-        total = len(flat)
-        self.scroll = max(0, min(self.scroll, max(0, total - body_h)))
-        end = total - self.scroll
-        view = flat[max(0, end - body_h):end]
-        view = [("", "")] * (body_h - len(view)) + view
-        if self.pending:
-            status = " Allow this? y = yes, n = no "
-        elif self.running:
-            status = " Ctrl-C stops the task "
+            if style == "brand":
+                continue
+            for w in wrap(text, max(10, width - 3)):
+                out.append((style, w))
+        return out
+
+    def _inputbox(self, width):
+        """OpenCode-style prompt: dark panel, accent bar on the left, model line underneath."""
+        pc = self.chat.cfg["providers"].get(self.chat.pname, {})
+        mode = "Build" if not (self.chat.auto_edit or self.chat.allow_shell) else "Build (auto)"
+        txt = self.buf[-(width - 6):]
+        if self.buf:
+            mid = [("pbar", " \u2503 "), ("panel", (txt + "\u2588").ljust(width - 3))]
         else:
-            status = " /help  /model  /sessions  /resume ID  /new  /yes-edits  /yes-shell  /exit "
-        prompt = "> " + self.buf
-        return [("hdr", header[:cols].ljust(cols))] + [(s, t[:cols]) for s, t in view] + [
-            ("status", status[:cols].ljust(cols)), ("", prompt[-cols:])]
+            ph = "Ask anything... \"add a contact form to index.html\""
+            mid = [("pbar", " \u2503 "), ("cursor", "\u2588"), ("pdim", ph[: width - 5].ljust(width - 4))]
+        info = [("pbar", " \u2503 "), ("pmode", mode), ("pdim", "  %s" % (pc.get("model") or self.chat.pname)),
+                ("pdim", ("  " + self.chat.pname if pc.get("model") else "")), ]
+        used = 3 + len(mode) + 2 + len(pc.get("model") or self.chat.pname) + (2 + len(self.chat.pname) if pc.get("model") else 0)
+        info.append(("panel", " " * max(0, width - used)))
+        top = [("pbar", " \u2503 "), ("panel", " " * (width - 3))]
+        return [top, mid, info]
+
+    def _splash(self, width, height):
+        rows = []
+        logo = ["\u2588\u2580\u2580\u2588 \u2588\u2580\u2580\u2580 \u2588\u2580\u2580\u2580",
+                "\u2588\u2580\u2580\u2588 \u2588    \u2588\u2580\u2580 ",
+                "\u2580  \u2580 \u2580\u2580\u2580\u2580 \u2580\u2580\u2580\u2580"]
+        bw = min(width - 4, 72)
+        box = self._inputbox(bw)
+        content = len(logo) + 2 + len(box) + 3
+        top = max(0, (height - content) // 2)
+        rows += [[("", "")]] * top
+        for l in logo:
+            rows.append([("logo", l.center(width))])
+        rows.append([("", "")])
+        rows.append([("", "")])
+        lm = (width - bw) // 2
+        for r in box:
+            rows.append([("", " " * lm)] + r)
+        rows.append([("", "")])
+        if self.chat.cfg["providers"].get(self.chat.pname, {}).get("type") == "echo":
+            rows.append([("warn", "Offline MOCK provider: it cannot use tools. Use /model to pick a real one.".center(width))])
+        rows.append([("dim", "/help for commands  \u00b7  /model to pick a provider  \u00b7  Ctrl-C to quit".center(width))])
+        return (rows + [[("", "")]] * height)[:height]
+
+    def _sidebar(self, height):
+        w = self.SIDEBAR
+        pc = self.chat.cfg["providers"].get(self.chat.pname, {})
+        r = [[("", "")]]
+
+        def head(t):
+            r.append([("bold", " " + t)])
+
+        def row(k, v):
+            r.append([("dim", " %-9s" % k), ("", str(v)[: w - 11])])
+        head("Session")
+        row("provider", self.chat.pname)
+        row("model", pc.get("model") or "-")
+        row("steps", self.nsteps)
+        row("status", "working..." if self.running else "idle")
+        r.append([("", "")])
+        head("Modified Files")
+        if not self.files:
+            r.append([("dim", " none yet")])
+        for f in self.files[-(max(1, height - len(r) - 3)):]:
+            r.append([("add", " + "), ("", f[: w - 4])])
+        return (r + [[("", "")]] * height)[:height]
+
+    def render(self):
+        cols, rows_n = self.size()
+        cols, rows_n = max(cols, 24), max(rows_n, 9)
+        flat0 = self._flat(cols)
+        started = any(st == "user" for st, _ in flat0)
+        side = cols >= 110 and started
+        mw = cols - self.SIDEBAR - 1 if side else cols
+        flat = self._flat(mw)
+        # footer (1) + optional approval bar (1); prompt box (3) lives in the body on the home screen
+        box_h = 0 if not started else 3
+        body_h = rows_n - 1 - 1 - box_h
+        if not started:
+            self.scroll = 0
+            body = self._splash(mw, body_h)
+        else:
+            total = len(flat)
+            self.scroll = max(0, min(self.scroll, max(0, total - body_h)))
+            end = total - self.scroll
+            view = flat[max(0, end - body_h):end]
+            body = []
+            for st, t in view:
+                if st == "user":
+                    body.append([("ubar", " \u2503 "), ("user", t.ljust(mw - 3))])
+                elif st == "ans":
+                    body.append([("", "   " + (t[2:] if t.startswith("\u258c ") else t))])
+                elif st == "tool":
+                    body.append([("tool", "   " + t)])
+                else:
+                    body.append([(st, "   " + t)])
+            body = ([[("", "")]] * (body_h - len(body))) + body
+            if side:
+                sb = self._sidebar(body_h)
+                body = [self._pad(a, mw) + [("sep", "\u2502")] + b for a, b in zip(body, sb)]
+        if self.pending:
+            mid = [("warnbar", " \u26a0  Allow this?   [y] yes   [n] no ".ljust(cols))]
+        elif self.running:
+            mid = [("dim", "   working... Ctrl-C stops after the current step")]
+        else:
+            mid = [("", "")]
+        out = body + [mid]
+        if started:
+            out += [self._pad(r, mw if False else cols) for r in self._inputbox(cols - 2)]
+        left = " " + os.path.abspath(self.chat.root)
+        right = "ace %s " % __version__
+        gap = max(1, cols - len(left) - len(right))
+        out.append([("dim", left + " " * gap + right)])
+        return out
+
+    @staticmethod
+    def _pad(row, width):
+        n = sum(len(t) for _, t in row)
+        return row + [("", " " * (width - n))] if n < width else row
+
+    @staticmethod
+    def plain(row):
+        return "".join(t for _, t in row)
 
     def draw(self, out=None):
         out = out or sys.stdout
-        codes = {"hdr": "7", "bold": "1", "dim": "2", "warn": "33", "add": "32", "del": "31", "status": "7;36"}
+        cols = self.size()[0]
+        cols = max(cols, 24)
+        sty = {"bold": "1", "dim": "38;2;128;128;128", "warn": "38;2;250;178;131", "add": "38;2;127;216;143", "del": "38;2;224;108;117",
+               "tool": "38;2;128;128;128", "ok": "38;2;127;216;143", "logo": "1;38;2;238;238;238", "sep": "38;2;60;60;60",
+               "user": "48;2;30;30;30;38;2;238;238;238", "ubar": "48;2;30;30;30;38;2;92;156;245",
+               "pbar": "48;2;30;30;30;38;2;92;156;245", "panel": "48;2;30;30;30;38;2;238;238;238", "pdim": "48;2;30;30;30;38;2;110;110;110",
+               "pmode": "48;2;30;30;30;1;38;2;92;156;245", "cursor": "48;2;30;30;30;38;2;250;178;131",
+               "warnbar": "1;48;2;250;178;131;38;2;10;10;10", "accent": "38;2;250;178;131"}
         buf = [CSI + "H"]
-        for style, text in self.render():
-            c = codes.get(style)
-            buf.append((CSI + c + "m" + text + CSI + "0m" if c else text) + CSI + "K\r\n")
-        out.write("".join(buf)[:-2])
+        rows = self.render()
+        for i, row in enumerate(rows):
+            used = 0
+            for st, t in row:
+                if used >= cols:
+                    break
+                t = t[: cols - used]
+                used += len(t)
+                if isinstance(st, tuple):
+                    c = "1;38;2;%d;%d;%d" % st[1]
+                else:
+                    c = sty.get(st, "")
+                buf.append((CSI + c + "m" + t + CSI + "0m") if c else t)
+            buf.append(CSI + "K" + ("\r\n" if i < len(rows) - 1 else ""))
+        out.write("".join(buf))
         out.flush()
 
     # ---- input -----------------------------------------------------
@@ -183,7 +345,7 @@ class App:
             self.history.append(line)
             self.hpos = len(self.history)
             self.scroll = 0
-            self.add("> " + line, "bold")
+            self.add(line, "user")
             if line.startswith("/"):
                 if not self.chat.command(line):
                     self.quit = True
