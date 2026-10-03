@@ -44,7 +44,7 @@ class TuiTest(unittest.TestCase):
         a = self.app()
         for k in typed("/help"):
             a.key(k)
-        self.assertIn("/model", self.text(a))
+        self.assertIn("/yes-edits", self.text(a))
 
     def test_backspace_and_history(self):
         a = self.app()
