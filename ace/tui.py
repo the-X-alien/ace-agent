@@ -20,6 +20,19 @@ from .chat import Chat
 
 CSI = "\033["
 
+# (command, description, takes_argument)
+COMMANDS = [
+    ("/help", "Help", False),
+    ("/model", "Switch provider / model", True),
+    ("/sessions", "List saved sessions", False),
+    ("/resume", "Resume a saved session", True),
+    ("/new", "Start a fresh session", False),
+    ("/yes-edits", "Stop asking before file edits", False),
+    ("/yes-shell", "Stop asking before shell commands", False),
+    ("/ask", "Ask before edits and commands again", False),
+    ("/exit", "Exit the app", False),
+]
+
 
 STEP = re.compile(r"^step (\d+): (\w+) (\{.*\})$")
 LOGO = [
@@ -97,6 +110,8 @@ class App:
         self.pending = None  # (kind, detail, queue)
         self.history, self.hpos = [], 0
         self.quit = False
+        self.sel = 0
+        self.palette = None  # {"q": str, "sel": int} while ctrl+p is open
         self.keys = keys or KeyReader()
         self.size = size or (lambda: shutil.get_terminal_size((80, 24)))
         self.chat = Chat(root, provider, out=Sink(self), err=Sink(self, "dim"))
@@ -185,7 +200,7 @@ class App:
         lm = (width - bw) // 2
         for r in box:
             rows.append([("", " " * lm)] + r)
-        rows.append([("", " " * lm), ("dim", "/help commands   ctrl+c quit".rjust(bw))])
+        rows.append([("", " " * lm), ("dim", "/ commands   ctrl+p palette   ctrl+c quit".rjust(bw))])
         if self.chat.cfg["providers"].get(self.chat.pname, {}).get("type") == "echo":
             rows.append([("warn", "Offline MOCK provider: it cannot use tools. Use /model to pick a real one.".center(width))])
         return (rows + [[("", "")]] * height)[:height]
@@ -262,6 +277,7 @@ class App:
             path = ("..." + path[-max(0, room - 3):]) if room > 3 else path[:room]
         left = " " + path
         out.append([("dim", left + " " * max(1, cols - len(left) - len(right)) + right)])
+        out = self._overlay(out, cols)
         return [self._clip(r, cols) for r in out]
 
     @staticmethod
@@ -293,7 +309,7 @@ class App:
                "user": "48;2;30;30;30;38;2;238;238;238", "ubar": "48;2;30;30;30;38;2;92;156;245",
                "pbar": "48;2;30;30;30;38;2;92;156;245", "panel": "48;2;30;30;30;38;2;238;238;238", "pdim": "48;2;30;30;30;38;2;110;110;110",
                "pmode": "48;2;30;30;30;1;38;2;92;156;245", "cursor": "48;2;30;30;30;38;2;250;178;131",
-               "warnbar": "1;48;2;250;178;131;38;2;10;10;10", "accent": "38;2;250;178;131"}
+               "warnbar": "1;48;2;250;178;131;38;2;10;10;10", "accent": "38;2;250;178;131", "pop": "48;2;30;30;30;38;2;238;238;238", "sel": "48;2;250;178;131;38;2;10;10;10"}
         buf = [CSI + "H"]
         rows = self.render()
         for i, row in enumerate(rows):
@@ -312,6 +328,50 @@ class App:
         out.write("".join(buf))
         out.flush()
 
+    def popup_items(self):
+        if self.palette is not None:
+            q = self.palette["q"].lower()
+            return [c for c in COMMANDS if q in c[0].lower() or q in c[1].lower()]
+        if self.buf.startswith("/") and " " not in self.buf and not self.pending:
+            return [c for c in COMMANDS if c[0].startswith(self.buf)]
+        return []
+
+    def _overlay(self, out, cols):
+        items = self.popup_items()
+        if self.palette is not None:
+            w = min(cols - 4, 60)
+            lm = (cols - w) // 2
+            rows = [[("", " " * lm), ("pop", " Commands".ljust(w - 5) + "esc  ")],
+                    [("", " " * lm), ("pop", (" " + (self.palette["q"] or "") + "\u2588" if self.palette["q"] else " Search").ljust(w))],
+                    [("", " " * lm), ("pop", " " * w)]]
+            self.palette["sel"] = max(0, min(self.palette["sel"], len(items) - 1))
+            for i, (c, d, _) in enumerate(items[:10]):
+                rows.append([("", " " * lm), ("sel" if i == self.palette["sel"] else "pop", (" %s  %s" % (c.ljust(11), d)).ljust(w))])
+            if not items:
+                rows.append([("", " " * lm), ("pop", " no matching command".ljust(w))])
+            rows.append([("", " " * lm), ("pop", " " * w)])
+            top = 2
+            for i, r in enumerate(rows):
+                if top + i < len(out) - 1:
+                    out[top + i] = r
+            return out
+        if not items:
+            return out
+        self.sel = max(0, min(self.sel, len(items) - 1))
+        box_top = next((i for i, r in enumerate(out) if any(st == "pbar" for st, _ in r[:2])), None)
+        if box_top is None:
+            return out
+        r0 = out[box_top]
+        lm = len(r0[0][1]) if r0 and r0[0][0] == "" and not r0[0][1].strip() else 0
+        w = sum(len(t) for _, t in r0) - lm
+        shown = items[:10]
+        for i, (c, d, _) in enumerate(shown):
+            row = box_top - len(shown) + i
+            if row < 1:
+                continue
+            out[row] = [("", " " * lm), ("sel" if i == self.sel else "pop", (" %s  %s" % (c.ljust(11), d)).ljust(w))]
+        return out
+
     # ---- input -----------------------------------------------------
     def start(self, text):
         self.running = True
@@ -323,9 +383,57 @@ class App:
                 self.running = False
         threading.Thread(target=work, daemon=True).start()
 
+    def run_command(self, c):
+        cmd, _, needs_arg = c
+        if needs_arg:
+            self.buf = cmd + " "
+            return
+        self.buf = ""
+        self.add(cmd, "user")
+        if not self.chat.command(cmd):
+            self.quit = True
+
     def key(self, k):
         if k is None:
             return
+        if self.palette is not None:
+            items = self.popup_items()
+            if k == "esc" or k == "ctrl-p" or k == "ctrl-c":
+                self.palette = None
+            elif k == "enter":
+                idx = self.palette["sel"]
+                self.palette = None
+                if items:
+                    self.run_command(items[max(0, min(idx, len(items) - 1))])
+            elif k == "up":
+                self.palette["sel"] = max(0, self.palette["sel"] - 1)
+            elif k == "down":
+                self.palette["sel"] += 1
+            elif k == "backspace":
+                self.palette["q"] = self.palette["q"][:-1]
+            elif len(k) == 1 and k.isprintable():
+                self.palette["q"] += k
+                self.palette["sel"] = 0
+            return
+        if k == "ctrl-p" and not self.pending:
+            self.palette = {"q": "", "sel": 0}
+            return
+        items = self.popup_items()
+        if items and not self.pending:
+            if k == "up":
+                self.sel = (self.sel - 1) % len(items)
+                return
+            if k == "down":
+                self.sel = (self.sel + 1) % len(items)
+                return
+            if k == "tab":
+                self.buf = items[self.sel % len(items)][0] + " "
+                self.sel = 0
+                return
+            if k == "enter" and self.buf not in [c[0] for c in items]:
+                self.run_command(items[self.sel % len(items)])
+                self.sel = 0
+                return
         if self.pending:
             if k in ("y", "Y"):
                 self.pending[2].put(True)
@@ -415,7 +523,7 @@ class KeyReader:
                     keys.append("esc")
                     i += 1
                 continue
-            keys.append({"\r": "enter", "\n": "enter", "\x7f": "backspace", "\x08": "backspace", "\x03": "ctrl-c", "\x04": "ctrl-c"}.get(ch, ch))
+            keys.append({"\r": "enter", "\n": "enter", "\x7f": "backspace", "\x08": "backspace", "\x03": "ctrl-c", "\x04": "ctrl-c", "\x10": "ctrl-p", "\t": "tab"}.get(ch, ch))
             i += 1
         self.pending.extend(keys[1:])
         return keys[0] if keys else None
@@ -428,7 +536,7 @@ class KeyReader:
                 ch = msvcrt.getwch()
                 if ch in ("\x00", "\xe0"):
                     return {"H": "up", "P": "down", "I": "pgup", "Q": "pgdn"}.get(msvcrt.getwch())
-                return {"\r": "enter", "\x08": "backspace", "\x03": "ctrl-c"}.get(ch, ch)
+                return {"\r": "enter", "\x08": "backspace", "\x03": "ctrl-c", "\x10": "ctrl-p", "\t": "tab"}.get(ch, ch)
             time.sleep(0.01)
         return None
 
