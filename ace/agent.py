@@ -21,6 +21,9 @@ MAX_READ = 20000
 MAX_OUT = 8000
 SHELL_TIMEOUT = 60
 TOOL_RE = re.compile(r"```ace-tool\s*\n(.*?)\n?```", re.S)
+# raw file block: no JSON escaping needed, friendlier for small models
+FILE_RE = re.compile(r"```ace-write[ \t]+(\S+)[ \t]*\n(.*?)\n?```", re.S)
+TRIPLE_RE = re.compile(r'"""(.*?)"""', re.S)
 
 SYSTEM = """You are Ace, a coding agent working inside one project folder. Do the user's task by using tools, then give a short final answer.
 
@@ -36,6 +39,11 @@ Tools:
 - search {"pattern": "text or regex", "path": "."}      find lines in files
 - write_file {"path": "a.py", "content": "..."}         create or overwrite a file
 - edit_file {"path": "a.py", "old": "exact text", "new": "replacement"}   replace one exact, unique piece of text
+- To write a whole file without JSON escaping, reply with a block like this instead:
+```ace-write index.html
+<!DOCTYPE html>
+...the complete file as plain text...
+```
 - run_shell {"command": "python -m unittest"}           run a command in the project folder (60s limit)
 
 Rules: paths are relative to the project folder. Read a file before editing it. Make the smallest change that does the task, then check it with run_shell when a check exists. When the task is done, reply in plain text with no tool block."""
@@ -175,11 +183,19 @@ class Tools:
 
 def parse_tool(text):
     """Return (tool, args) from the first ace-tool block, ('error', message) for a broken block, or None."""
+    fw = FILE_RE.search(text)
     m = TOOL_RE.search(text)
+    if fw and (not m or fw.start() < m.start()):
+        return "write_file", {"path": fw.group(1), "content": fw.group(2) + "\n"}
     if not m:
         return None
     try:
-        d = json.loads(m.group(1))
+        raw = m.group(1)
+        try:
+            d = json.loads(raw)
+        except ValueError:
+            # small models sometimes use Python-style triple-quoted strings
+            d = json.loads(TRIPLE_RE.sub(lambda t: json.dumps(t.group(1).strip("\n")), raw))
         if not isinstance(d, dict) or "tool" not in d:
             raise ValueError("missing tool")
         args = d.get("args")
