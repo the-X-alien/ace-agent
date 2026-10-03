@@ -6,26 +6,31 @@ Ace is a free, open-source harness layer for the AI providers you already use. Y
 2. **Output checks.** It checks the reply (markup, syntax, placeholder text), and asks the model to repair hard failures once.
 3. **One table for humans and agents.** A shared board where people and agents take tasks, post live progress, share context, and a human approves before anything is marked done.
 
-Status: **v0.1.0, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
+Status: **v0.1.1, early.** Everything below says what exists today. Speed, cost and quality improvements are goals to be measured, not results. `ace compare` exists so you can measure them yourself on your own provider.
 
 ## Install
 
 Needs Python 3.9 or newer. No other dependencies.
 
+The repository is private for now, so install from a clone. You need git signed in to GitHub with access to this repo (for example `gh auth login`, or a credential manager), plus Python 3.9 or newer.
+
 macOS and Linux:
 
-    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.0/scripts/install.sh | sh
+    git clone --branch v0.1.1 https://github.com/the-X-alien/ace-agent.git
+    cd ace-agent
+    sh scripts/install.sh
 
 Windows (PowerShell):
 
-    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.0/scripts/install.ps1 | iex
+    git clone --branch v0.1.1 https://github.com/the-X-alien/ace-agent.git
+    cd ace-agent
+    powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 
-Or with pipx on any system:
+Or with pipx on any system (uses your git login):
 
-    pipx install git+https://github.com/the-X-alien/ace-agent@v0.1.0
+    pipx install git+https://github.com/the-X-alien/ace-agent@v0.1.1
 
-Each command installs the pinned tag `v0.1.0`, is safe to run again, and never asks for a key. If you want to read the script first, download it and run it with `sh install.sh` or `powershell -File install.ps1`.
-**Note:** while the repository is private, these URLs only work for people with access (clone it and run the script from the checkout instead, or use `pip install .`).
+The script installs into an isolated environment, is safe to run again, and never asks for a key. Read it first if you like: scripts/install.sh and scripts/install.ps1. Tested so far: the Linux script, from a local checkout. Not yet tested: macOS, Windows, and installing from GitHub itself. If v0.1.1 does not resolve, use `--branch main`.
 
 Remove it: `pipx uninstall ace-agent` (or `python -m pip uninstall ace-agent`). Project data lives in each project's `.ace/` folder.
 
