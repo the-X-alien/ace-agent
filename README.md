@@ -12,15 +12,15 @@ Status: **v0.1.1, early.** Everything below says what exists today. Speed, cost 
 
 Needs Python 3.9 or newer. No other dependencies.
 
-One line (pinned to v0.1.3). Needs Python 3.9+; no git, no pipx, no admin rights.
+One line (pinned to v0.1.4). Needs Python 3.9+; no git, no pipx, no admin rights.
 
 macOS and Linux (Terminal):
 
-    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.3/scripts/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.sh | sh
 
 Windows (PowerShell):
 
-    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.3/scripts/install.ps1 | iex
+    irm https://raw.githubusercontent.com/the-X-alien/ace-agent/v0.1.4/scripts/install.ps1 | iex
 
 Then type `ace-agent doctor` (`ace` works too, unless another program on your PC already uses that name; the installer tells you and never touches it). The installer sets up its own private Python environment, puts `ace` on your PATH for this window and your future terminals (your user PATH only, added once), and starts `ace --version` to check itself. On Windows, if Python is missing it installs Python 3.12 for your user with winget. On macOS and Linux a terminal that was already open needs to be reopened.
 
