@@ -31,14 +31,14 @@ class TuiTest(unittest.TestCase):
         return tui.App(self.d, size=lambda: size)
 
     def text(self, a):
-        return "\n".join(t for _, t in a.render())
+        return "\n".join("".join(x for _, x in row) for row in a.render())
 
     def test_render_fits_screen(self):
         a = self.app((40, 10))
         r = a.render()
         self.assertEqual(len(r), 10)
-        self.assertTrue(all(len(t) <= 40 for _, t in r))
-        self.assertIn("MOCK", self.text(a))
+        self.assertTrue(all(sum(len(x) for _, x in row) <= 40 for row in r))
+        self.assertIn("ace", self.text(a))
 
     def test_typing_and_command(self):
         a = self.app()
@@ -61,6 +61,7 @@ class TuiTest(unittest.TestCase):
 
     def test_scroll_keys(self):
         a = self.app((40, 8))
+        a.add("go", "user")
         for i in range(50):
             a.add("line %d" % i)
         a.render()
@@ -82,6 +83,7 @@ class TuiTest(unittest.TestCase):
 
     def test_approval_modal_flow(self):
         a = self.app()
+        a.add("go", "user")
         res = []
         import threading
         t = threading.Thread(target=lambda: res.append(a.approve("edit", "f.txt\n-old\n+new")))
