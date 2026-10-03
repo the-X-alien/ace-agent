@@ -10,31 +10,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install via pipx path
+      - name: Install from this checkout, twice (idempotent)
         shell: powershell
         run: |
           $env:ACE_SOURCE = "."
-          powershell -ExecutionPolicy Bypass -File scripts\install.ps1
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          $bin = (pipx environment --value PIPX_BIN_DIR).Trim()
-          & "$bin\ace.exe" --version
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          & "$bin\ace.exe" doctor
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-      - name: Install via venv path (no pipx)
-        shell: powershell
-        run: |
-          $env:ACE_SOURCE = "."
-          $env:ACE_NO_PIPX = "1"
           $env:ACE_HOME = "$env:RUNNER_TEMP\ace-home"
           powershell -ExecutionPolicy Bypass -File scripts\install.ps1
-          $ace = "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe"
-          & $ace --version
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          & $ace doctor
+          powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $scripts = "$env:RUNNER_TEMP\ace-home\venv\Scripts"
+          $n = @([Environment]::GetEnvironmentVariable("Path","User").Split(";") | Where-Object { $_ -eq $scripts }).Count
+          Write-Host "user PATH entries for Ace: $n"
+          if ($n -ne 1) { exit 1 }
+      - name: Launch from user PATH (fresh process reading the registry PATH)
+        shell: powershell
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
+          ace-agent --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          ace-agent doctor
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Unit tests
         shell: powershell
         run: |
           python -m unittest discover -s tests
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Uninstall restores PATH
+        shell: powershell
+        run: |
+          $env:ACE_HOME = "$env:RUNNER_TEMP\ace-home"
+          $env:ACE_UNINSTALL = "1"
+          powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+          $scripts = "$env:RUNNER_TEMP\ace-home\venv\Scripts"
+          $n = @([Environment]::GetEnvironmentVariable("Path","User").Split(";") | Where-Object { $_ -eq $scripts }).Count
+          if ($n -ne 0 -or (Test-Path "$env:RUNNER_TEMP\ace-home")) { Write-Host "uninstall incomplete"; exit 1 }
+          Write-Host "uninstall ok"
