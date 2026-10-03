@@ -1,0 +1,26 @@
+name: windows-check
+on:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install with the PowerShell installer from this checkout
+        shell: powershell
+        run: |
+          $env:ACE_SOURCE = "."
+          $env:ACE_HOME = "$env:RUNNER_TEMP\ace-home"
+          powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+      - name: Run installed ace
+        shell: powershell
+        run: |
+          & "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe" --version
+          & "$env:RUNNER_TEMP\ace-home\venv\Scripts\ace.exe" doctor
+      - name: Unit tests
+        shell: powershell
+        run: python -m unittest discover -s tests
