@@ -213,6 +213,17 @@ def cmd_agent(a):
     return 0 if res["stopped"] == "done" else 1
 
 
+def cmd_site(a):
+    from . import site
+    r = cfgmod.root()
+    prov = _provider(a, cfgmod.load(r))
+    if getattr(prov, "cfg", {}).get("type") == "echo":
+        print("[MOCK provider: canned output, cannot write a site. Pick a real provider with --provider]", file=sys.stderr)
+        return 1
+    site.run(prov, a.prompt, os.path.join(r, a.out), say=lambda m: print(m, file=sys.stderr))
+    return 0
+
+
 def cmd_sessions(a):
     rows = agentmod.list_sessions(cfgmod.root())
     for sid, n, first in rows:
@@ -243,6 +254,10 @@ def build():
         return s
     add("init", cmd_init, "create .ace/ with a starter config")
     add("doctor", cmd_doctor, "show versions, providers and skills")
+    s = add("site", cmd_site, "build a one-page website from one prompt (small steps, works with small models)")
+    s.add_argument("prompt")
+    s.add_argument("--provider")
+    s.add_argument("--out", default="index.html")
     s = add("agent", cmd_agent, "let a model read, edit files and run commands in this project (asks first)")
     s.add_argument("task")
     s.add_argument("--provider")
