@@ -88,6 +88,23 @@ class TuiTest(unittest.TestCase):
             self.assertTrue(all(sum(len(x) for _, x in row) <= w for row in a.render()))
             self.assertEqual(len(a.render()), max(h, 9))
 
+    def test_markdown_and_diff_render(self):
+        a = self.app((100, 30))
+        a.add("hi", "user")
+        for ln in ["# Title", "use **bold** and `code`", "- item", "```diff", "+new line", "-old line", " same", "```", "after"]:
+            a.add("\u258c " + ln, "ans")
+        flat = a._flat(100)
+        styles = [(st, tx) for st, tx in flat]
+        self.assertIn(("bold", "Title"), styles)
+        self.assertIn(("ans", "use bold and code"), styles)
+        self.assertIn(("ans", "\u2022 item"), styles)
+        self.assertIn(("add", "+new line"), styles)
+        self.assertIn(("del", "-old line"), styles)
+        self.assertIn(("ans", "after"), styles)
+        txt = self.text(a)
+        self.assertNotIn("```", txt)
+        self.assertNotIn("**", txt)
+
     def test_typing_and_command(self):
         a = self.app()
         for k in typed("/help"):
