@@ -8,7 +8,7 @@ from . import config as cfgmod
 from . import providers, runner
 
 HELP = """Type a task and press Enter. Commands:
-  /model            list providers, /model NAME switches
+  /model            list providers, /model NAME [MODEL] switches (and sets the model for this session)
   /yes-edits        stop asking before file edits and writes   (/ask turns questions back on)
   /yes-shell        stop asking before shell commands
   /sessions         list saved sessions, /resume ID continues one, /new starts fresh
@@ -57,11 +57,14 @@ class Chat:
             self.say(HELP)
         elif cmd == "/model":
             if arg:
-                if arg not in self.cfg["providers"]:
-                    self.say("No provider named %s." % arg)
+                name, _, model = arg.partition(" ")
+                if name not in self.cfg["providers"]:
+                    self.say("No provider named %s." % name)
                 else:
-                    self.pname = arg
-                    self.say("Provider: %s" % arg)
+                    self.pname = name
+                    if model.strip():
+                        self.cfg["providers"][name] = dict(self.cfg["providers"][name], model=model.strip())
+                    self.say("Provider: %s%s" % (name, ", model " + model.strip() if model.strip() else ""))
             else:
                 for n, c in self.cfg["providers"].items():
                     self.say("%s %s  (%s%s)" % ("*" if n == self.pname else " ", n, c.get("type"), ", model " + c["model"] if c.get("model") else ""))
