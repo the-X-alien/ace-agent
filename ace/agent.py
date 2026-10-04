@@ -49,6 +49,23 @@ Tools:
 Rules: paths are relative to the project folder. Read a file before editing it. Make the smallest change that does the task, then check it with run_shell when a check exists. When the task is done, reply in plain text with no tool block."""
 
 
+_PLACEHOLDERS = ("goes here", "your code here", "todo: implement", "lorem ipsum dolor sit amet, consectetur adipiscing elit. (")
+
+
+def placeholder_reason(path, content, fullpath):
+    """Return a reason when this write looks like a placeholder that would destroy a real file."""
+    low = content.strip().lower()
+    hit = any(m in low for m in _PLACEHOLDERS) and len(low) < 400
+    tiny_html = path.lower().endswith((".html", ".htm")) and "<" not in low
+    if not (hit or tiny_html):
+        return ""
+    if os.path.exists(fullpath) and os.path.getsize(fullpath) > len(content) + 200:
+        return "the new content is a placeholder (%d characters) and would replace a longer file. Write the real, complete content." % len(content)
+    if hit or tiny_html:
+        return "the content is a placeholder, not real content. Write the real, complete content."
+    return ""
+
+
 class ToolError(Exception):
     pass
 
@@ -142,6 +159,9 @@ class Tools:
         f = self.ws.path(path)
         if not isinstance(content, str):
             raise ToolError("content must be text")
+        why = placeholder_reason(path, content, f)
+        if why:
+            raise ToolError("write refused, the existing file was kept: " + why)
         if not self._ok("write", "%s (%d characters)" % (path, len(content))):
             raise ToolError("the user did not approve this write")
         os.makedirs(os.path.dirname(f), exist_ok=True)
