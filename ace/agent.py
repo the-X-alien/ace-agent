@@ -319,6 +319,8 @@ def with_skills(task, root, say=None):
     if say:
         say("skills: " + ", ".join("%s (%s)" % (p.skill.name, ", ".join(p.matched[:3])) for p in picks))
     text = sk.compose(task, picks)
+    if len(text) > 1800:   # small local models have small windows: keep the rules short
+        text = text[:1800].rsplit("\n", 1)[0] + "\n\nTask: " + task
     return text + "\n\n(You are using tools: save files with write_file or an ace-write block instead of returning a code block, and keep any CSS inside the page.)"
 
 
