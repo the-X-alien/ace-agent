@@ -212,3 +212,13 @@ class SkillsInAgent(unittest.TestCase):
             self.assertIn("## Task\nbuild a responsive landing page website", out)
             self.assertIn("write_file", out)
             self.assertEqual(agent.with_skills("hello there", d, say=shown.append), "hello there")
+
+
+class PlaceholderGuard(unittest.TestCase):
+    def test_refuses(self):
+        import tempfile, os
+        from ace import agent
+        d = tempfile.mkdtemp(); f = os.path.join(d, "index.html")
+        open(f, "w").write("<html>" + "x" * 500 + "</html>")
+        self.assertTrue(agent.placeholder_reason("index.html", "HTML content goes here", f))
+        self.assertFalse(agent.placeholder_reason("index.html", "<html><body>" + "a" * 600 + "</body></html>", f))
